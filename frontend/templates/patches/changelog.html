@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Change Log{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-clock-history me-2 text-info"></i>Change Log</h2>
+    <small class="text-muted">Immutable record of every content change applied to ContainIQ</small>
+  </div>
+  <a href="{{ url_for('patches.patch_dashboard') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Patches
+  </a>
+</div>
+
+<div class="card ciq-card">
+  <div class="card-body p-0">
+    {% if entries %}
+    <table class="table table-hover ciq-table mb-0">
+      <thead>
+        <tr><th>Change</th><th>Resource</th><th>Risk</th><th>Patch</th><th>Applied</th></tr>
+      </thead>
+      <tbody>
+        {% for entry in entries %}
+        <tr>
+          <td>
+            <span class="badge
+              {% if 'added' in entry.change_type %}bg-success
+              {% elif 'updated' in entry.change_type %}bg-warning text-dark
+              {% elif 'deleted' in entry.change_type or 'rolled_back' in entry.change_type %}bg-danger
+              {% else %}bg-secondary{% endif %} me-1">
+              {{ entry.change_type|replace('_',' ') }}
+            </span>
+          </td>
+          <td>
+            <div class="fw-semibold small">{{ entry.resource_name }}</div>
+            {% if entry.description %}<div class="text-muted small">{{ entry.description[:100] }}</div>{% endif %}
+          </td>
+          <td>
+            <span class="badge {% if entry.risk_level == 'low' %}bg-success{% elif entry.risk_level == 'medium' %}bg-warning text-dark{% else %}bg-danger{% endif %}">
+              {{ entry.risk_level }}
+            </span>
+          </td>
+          <td class="text-muted small font-monospace">
+            {% if entry.patch_id %}
+            <a href="{{ url_for('patches.patch_detail', patch_id=entry.patch_id) }}" class="text-info">
+              #{{ entry.patch_id }}
+            </a>
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-muted small">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-clock-history display-4"></i>
+      <p class="mt-2">No changes applied yet.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

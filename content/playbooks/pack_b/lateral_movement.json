@@ -1,0 +1,76 @@
+{
+  "name": "Lateral Movement Suspicion",
+  "description": "Investigate and contain suspected lateral movement — attacker pivoting from initial foothold to additional hosts using credential abuse, SMB, WMI, or RDP.",
+  "pack": "pack_b",
+  "signals_required": ["unusual_smb_connections", "or", "psexec_detected", "or", "wmi_remote_execution", "or", "rdp_from_unusual_source"],
+  "mitre_techniques": ["T1021.001", "T1021.002", "T1047", "T1550.002"],
+  "blast_radius_limits": {"max_affected": 10, "scope": "affected_hosts"},
+  "steps": [
+    {
+      "name": "Map the movement graph — source to destination hosts",
+      "description": "Identify the full chain: original foothold → intermediate hops → target systems. Document timestamps, protocols used, and credentials leveraged.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would query SIEM for SMB/RDP/WMI connections originating from the suspected foothold host in the attack window.",
+      "verification": {"check": "movement_graph_documented", "expected": "all_hops_identified"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Isolate the source (foothold) host",
+      "description": "Network-contain the original compromised host to stop further outbound movement. Maintain EDR connectivity for investigation.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would trigger EDR isolation on foothold host. All inbound/outbound blocked except EDR agent.",
+      "verification": {"check": "foothold_isolated", "expected": "edr_containment_active"},
+      "safety_constraints": ["confirm_this_is_not_a_critical_server_first"],
+      "rollback": {"action": "release_edr_isolation", "params": {"host_id": "foothold_host"}},
+      "blast_radius": {"max_affected": 1, "scope": "single_host_network"}
+    },
+    {
+      "name": "Block attacker-controlled credentials at domain level",
+      "description": "If specific AD accounts were used for lateral movement, disable them at the domain controller. Do not delete — preserve for investigation.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would run Disable-ADAccount on identified compromised accounts. Accounts disabled not deleted.",
+      "verification": {"check": "accounts_disabled", "expected": "cannot_authenticate"},
+      "safety_constraints": ["disable_not_delete", "notify_account_owners"],
+      "rollback": {"action": "Enable-ADAccount", "params": {"accounts": "list_captured_before_disable"}},
+      "blast_radius": {"max_affected": 10, "scope": "ad_accounts"}
+    },
+    {
+      "name": "Force Kerberos ticket purge (klist purge / krbtgt reset if needed)",
+      "description": "If pass-the-ticket or golden ticket attack is suspected, purge Kerberos tickets on affected hosts and consider krbtgt password reset.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would run klist purge on affected hosts. krbtgt reset requires two sequential resets 10h apart — schedule carefully.",
+      "verification": {"check": "tickets_purged", "expected": "no_active_kerberos_tickets_for_compromised_accounts"},
+      "safety_constraints": ["krbtgt_double_reset_required", "expect_brief_auth_disruption"],
+      "rollback": {"action": "none", "note": "Tickets cannot be restored. Users re-authenticate normally."},
+      "blast_radius": {"max_affected": 999, "scope": "domain_kerberos"}
+    },
+    {
+      "name": "Scan all reached hosts for persistence mechanisms",
+      "description": "On each host the attacker reached, scan for: scheduled tasks, services, registry run keys, WMI subscriptions, and startup folder items.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would run EDR live response persistence hunt on all identified destination hosts.",
+      "verification": {"check": "persistence_scan_complete", "expected": "all_destinations_scanned"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    }
+  ],
+  "evidence_checklist": [
+    "Lateral movement graph (source → destinations)",
+    "Protocol and credentials used for each hop",
+    "Timestamps of each movement event",
+    "Compromised AD account list",
+    "Persistence artifacts found on destination hosts",
+    "Kerberos ticket purge / krbtgt reset confirmation"
+  ]
+}

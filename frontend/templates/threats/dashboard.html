@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Threat Intel{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-broadcast me-2 text-danger"></i>Threat Intelligence</h2>
+    <small class="text-muted">Daily automated feed · CISA KEV · URLhaus · AlienVault OTX · AI threat analysis · AI-specific threats</small>
+  </div>
+  <button class="btn btn-danger" id="btnRunNow">
+    <i class="bi bi-arrow-repeat me-1"></i>Run Now
+  </button>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Pending proposals -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-lightbulb me-2 text-warning"></i>Pending Proposals</span>
+        <span class="badge bg-warning text-dark">{{ proposals|length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if proposals %}
+        {% for p in proposals %}
+        <div class="p-3 border-bottom ciq-proposal-item">
+          <div class="d-flex justify-content-between align-items-start">
+            <div>
+              <span class="badge bg-{{ 'danger' if p.proposal_type == 'detection' else 'info' if p.proposal_type == 'playbook' else 'secondary' }} me-2">
+                {{ p.proposal_type|replace('_',' ') }}
+              </span>
+              <strong>{{ p.title }}</strong>
+            </div>
+            <div class="d-flex gap-2">
+              <button class="btn btn-success btn-sm proposal-action" data-id="{{ p.id }}" data-decision="approved">
+                <i class="bi bi-check-lg"></i> Approve
+              </button>
+              <button class="btn btn-outline-danger btn-sm proposal-action" data-id="{{ p.id }}" data-decision="rejected">
+                <i class="bi bi-x-lg"></i> Reject
+              </button>
+            </div>
+          </div>
+          {% if p.rationale %}
+          <p class="text-muted small mt-2 mb-0">{{ p.rationale[:200] }}</p>
+          {% endif %}
+          <div class="text-muted small mt-1">{{ p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at }}</div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="text-center py-4 text-muted">
+          <i class="bi bi-check-circle text-success display-5"></i>
+          <p class="mt-2">All proposals reviewed — no pending items.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Run history -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2"></i>Feed History</div>
+      <div class="card-body p-0">
+        {% if updates %}
+        <table class="table table-hover ciq-table mb-0">
+          <thead>
+            <tr><th>Date</th><th>Sources</th><th>IOCs</th><th>Proposals</th></tr>
+          </thead>
+          <tbody>
+            {% for u in updates %}
+            <tr>
+              <td class="fw-semibold">{{ u.run_date }}</td>
+              <td>{{ u.sources_checked }}</td>
+              <td><span class="badge bg-danger">{{ u.iocs_found }}</span></td>
+              <td><span class="badge bg-warning text-dark">{{ u.proposals_generated }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted small">
+          No threat intel runs yet. Click "Run Now" to trigger the first pull.
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- AI threat categories -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-robot me-2 text-info"></i>AI Threat Categories Monitored</div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for cat in [
+            'Prompt injection / jailbreaking',
+            'LLM-assisted spear phishing',
+            'Deepfake voice/video BEC',
+            'Model inversion / data extraction',
+            'AI-powered credential stuffing',
+            'Adversarial ML evasion',
+            'Indirect prompt injection',
+            'AI-generated malware',
+            'Shadow AI / unauthorized LLM',
+            'Copilot data exfiltration'
+          ] %}
+          <li class="list-group-item ciq-list-item d-flex align-items-center gap-2 py-2">
+            <i class="bi bi-shield-exclamation text-danger"></i>
+            <span class="small">{{ cat }}</span>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+
+    <!-- Feed sources -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-rss me-2"></i>Feed Sources</div>
+      <div class="card-body p-0">
+        <ul class="list-group list-group-flush">
+          {% for src, url in [
+            ('CISA KEV', 'Known Exploited Vulnerabilities'),
+            ('URLhaus', 'Malicious URL feed'),
+            ('AlienVault OTX', 'Threat pulse subscriptions'),
+            ('Claude AI', 'AI threat synthesis & proposals'),
+          ] %}
+          <li class="list-group-item ciq-list-item py-2">
+            <div class="fw-semibold small">{{ src }}</div>
+            <div class="text-muted small">{{ url }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btnRunNow').addEventListener('click', function() {
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Running…';
+  fetch('/threats/run-now', {method:'POST', headers:{'Content-Type':'application/json'}})
+    .then(r => r.json())
+    .then(d => {
+      this.innerHTML = '<i class="bi bi-check-circle me-1"></i>Done';
+      setTimeout(() => location.reload(), 1200);
+    })
+    .catch(() => { this.innerHTML = 'Error'; this.disabled = false; });
+});
+
+document.querySelectorAll('.proposal-action').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    fetch(`/threats/proposals/${id}/review`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({decision: this.dataset.decision})
+    }).then(() => location.reload());
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — New Case{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="d-flex align-items-center mb-4">
+      <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary btn-sm me-3">
+        <i class="bi bi-arrow-left"></i>
+      </a>
+      <h2 class="fw-bold mb-0"><i class="bi bi-plus-circle me-2 text-primary"></i>New Case</h2>
+    </div>
+    <div class="card ciq-card">
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('cases.create_case') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+            <input type="text" name="title" class="form-control" required
+                   placeholder="e.g. Suspicious inbox forwarding rule — user@company.com"/>
+          </div>
+          <div class="row g-3 mb-3">
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Severity</label>
+              <select name="severity" class="form-select">
+                {% for s in severities %}
+                <option value="{{ s }}" {% if s=='high' %}selected{% endif %}>{{ s|title }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label fw-semibold">Source</label>
+              <select name="source" class="form-select">
+                <option value="manual">Manual</option>
+                <option value="alert">Alert</option>
+                <option value="threat_feed">Threat Feed</option>
+                <option value="vulnerability">Vulnerability Scan</option>
+                <option value="user_report">User Report</option>
+              </select>
+            </div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Description</label>
+            <textarea name="description" class="form-control" rows="3"
+                      placeholder="What happened? What alerts fired? What triggered this case?"></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Entities (one per line)</label>
+            <textarea name="entities" class="form-control ciq-mono" rows="4"
+                      placeholder="user: john.doe@company.com&#10;ip: 185.220.101.45&#10;device: DESKTOP-ABC123&#10;domain: malicious-site.xyz"></textarea>
+            <div class="form-text">Format: <code>type: value</code> — types: user, ip, device, domain, cloud_resource, saas_app, file, hash</div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Initial Timeline Event</label>
+            <input type="text" name="initial_event" class="form-control"
+                   placeholder="e.g. Alert fired: suspicious forwarding rule created at 03:14 UTC"/>
+          </div>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary px-4">
+              <i class="bi bi-folder-plus me-1"></i>Create Case
+            </button>
+            <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

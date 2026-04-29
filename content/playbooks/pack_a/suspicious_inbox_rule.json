@@ -1,0 +1,99 @@
+{
+  "name": "Suspicious Inbox Forwarding Rule",
+  "description": "Detect and contain auto-forwarding or deletion rules created by a potentially compromised account — common in BEC and OAuth token theft scenarios.",
+  "pack": "pack_a",
+  "signals_required": ["inbox_rule_created", "external_forwarding", "user_entity"],
+  "mitre_techniques": ["T1114.003", "T1098"],
+  "blast_radius_limits": {"max_affected": 1, "scope": "single_user"},
+  "steps": [
+    {
+      "name": "Identify and document the forwarding rule",
+      "description": "Pull the full rule details: creation timestamp, rule name, forwarding destination, and scope (all mail vs. keyword filter).",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would query Exchange/M365 audit logs for inbox rules created by the target user in the last 72h.",
+      "verification": {"check": "rule_documented", "expected": "rule_details_captured"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Preserve evidence — export mail rule audit log",
+      "description": "Export the unified audit log entry for the rule creation event. Hash the export for chain-of-custody.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would export UAL entries for mailbox rule events and attach to case evidence.",
+      "verification": {"check": "evidence_hash_recorded", "expected": "sha256_present"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Revoke active sessions for the affected account",
+      "description": "Invalidate all refresh tokens and active sign-in sessions. Forces reauthentication and terminates attacker session persistence.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would call Microsoft Graph revokeSignInSessions for user. Terminates ~all active sessions within 60 seconds.",
+      "verification": {"check": "sessions_revoked", "expected": "no_active_sessions"},
+      "safety_constraints": ["user_will_be_logged_out", "confirm_with_user_manager_if_vip"],
+      "rollback": {"action": "no_rollback_available", "note": "Sessions cannot be restored — user re-authenticates with MFA."},
+      "blast_radius": {"max_affected": 1, "scope": "single_user_sessions"}
+    },
+    {
+      "name": "Disable the malicious forwarding rule",
+      "description": "Disable or delete the inbox rule via Exchange PowerShell or Microsoft Graph. Do not delete immediately — preserve for evidence.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would call Set-InboxRule -Enabled $false on the identified rule. Rule preserved but inactive.",
+      "verification": {"check": "rule_disabled", "expected": "rule_status_disabled"},
+      "safety_constraints": ["disable_not_delete_for_evidence", "max_1_user_at_a_time"],
+      "rollback": {"action": "re_enable_inbox_rule", "params": {"rule_id": "captured_before_disable"}},
+      "blast_radius": {"max_affected": 1, "scope": "single_user_mailbox"}
+    },
+    {
+      "name": "Require MFA re-enrollment if device trust is broken",
+      "description": "If the attacker registered a new MFA device or authenticator, revoke and require fresh MFA enrollment.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would check MFA registration events in last 7 days and flag any new authenticator apps.",
+      "verification": {"check": "mfa_devices_reviewed", "expected": "only_known_devices_registered"},
+      "safety_constraints": ["coordinate_with_help_desk", "user_will_need_in_person_verification"],
+      "rollback": {"action": "restore_previous_mfa_device", "note": "User provides proof of ownership."},
+      "blast_radius": {"max_affected": 1, "scope": "single_user_mfa"}
+    },
+    {
+      "name": "Scan for OAuth app consent grants",
+      "description": "Check whether the account granted OAuth consent to a malicious third-party app during the attack window. Revoke unauthorized grants.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would enumerate OAuth2PermissionGrants for the affected user and flag grants to non-sanctioned apps.",
+      "verification": {"check": "oauth_grants_reviewed", "expected": "only_approved_apps"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Notify user and reset credentials",
+      "description": "Coordinate with IT/help desk to notify the user, force password reset, and confirm clean device before restoring access.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would trigger password reset workflow and send user notification via IT ticketing system.",
+      "verification": {"check": "password_reset_confirmed", "expected": "user_notified_and_reset"},
+      "safety_constraints": ["do_not_notify_via_compromised_mailbox"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 1, "scope": "single_user"}
+    }
+  ],
+  "evidence_checklist": [
+    "Inbox rule details (name, conditions, actions, creation time)",
+    "UAL export for rule creation event",
+    "Sign-in log showing attacker IP and user-agent",
+    "MFA device registration events",
+    "OAuth consent grant list",
+    "Password reset confirmation"
+  ]
+}

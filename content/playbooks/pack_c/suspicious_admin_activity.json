@@ -1,0 +1,88 @@
+{
+  "name": "Suspicious Privileged Admin Activity",
+  "description": "Investigate and contain suspicious use of admin privileges — covers impossible travel, after-hours admin actions, privilege escalation signals, and insider threat indicators.",
+  "pack": "pack_c",
+  "signals_required": ["admin_action_anomaly", "or", "impossible_travel", "or", "privilege_escalation_signal"],
+  "mitre_techniques": ["T1078.002", "T1548", "T1136", "T1098.003"],
+  "blast_radius_limits": {"max_affected": 1, "scope": "single_admin_account"},
+  "steps": [
+    {
+      "name": "Pull full admin activity log for the account",
+      "description": "Extract all privileged actions taken by the account in the last 30 days. Focus on: role assignments, user creation/deletion, policy changes, and data exports.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would query Entra ID audit log for all admin operations by the suspect account. Export to evidence.",
+      "verification": {"check": "audit_log_exported", "expected": "30_day_admin_activity_captured"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Verify impossible travel or session anomaly",
+      "description": "Cross-reference sign-in logs with the reported impossible travel alert. Confirm geolocation delta, device ID, IP, and ASN. Rule out VPN or travel.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would pull sign-in logs and map IP geolocation timeline. Calculate travel speed between auth events.",
+      "verification": {"check": "travel_anomaly_confirmed_or_cleared", "expected": "determination_documented"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Suspend the admin account pending investigation",
+      "description": "Temporarily disable the admin account. Do not delete. Coordinate with their manager before suspending to avoid disruption to legitimate work.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would set accountEnabled: false on the admin account via Entra ID. Login blocked immediately.",
+      "verification": {"check": "account_suspended", "expected": "login_attempt_fails"},
+      "safety_constraints": ["notify_manager_before_suspension", "document_business_justification"],
+      "rollback": {"action": "re_enable_account", "params": {"user_id": "captured_before_disable"}},
+      "blast_radius": {"max_affected": 1, "scope": "single_admin_account"}
+    },
+    {
+      "name": "Audit all changes made during suspicious window",
+      "description": "Review every action taken during the suspicious period: new accounts created, role assignments, MFA policy changes, conditional access bypasses, and external sharing.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would search unified audit log for all change events attributed to this admin during the anomaly window.",
+      "verification": {"check": "all_changes_catalogued", "expected": "change_impact_assessment_complete"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Reverse unauthorized changes",
+      "description": "For each unauthorized change identified: remove accounts created, revoke role assignments added, restore modified policies. Each reversal requires individual verification.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would generate reversal script for all unauthorized changes. Script reviewed before execution.",
+      "verification": {"check": "changes_reversed", "expected": "environment_restored_to_pre_attack_state"},
+      "safety_constraints": ["verify_each_reversal_does_not_break_production", "test_auth_flows_after_policy_changes"],
+      "rollback": {"action": "re_apply_changes_if_reversal_incorrect", "note": "Changes logged before reversal for recovery."},
+      "blast_radius": {"max_affected": 50, "scope": "tenant_config_changes"}
+    },
+    {
+      "name": "Review and tighten PIM / JIT admin access",
+      "description": "Recommend converting standing admin roles to Privileged Identity Management (PIM) just-in-time access if not already in place.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would audit current standing Global Admin role assignments and identify candidates for PIM conversion.",
+      "verification": {"check": "pim_review_complete", "expected": "recommendations_documented"},
+      "safety_constraints": ["pim_conversion_requires_change_management"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "recommendation_only"}
+    }
+  ],
+  "evidence_checklist": [
+    "30-day admin activity log export",
+    "Sign-in log with geolocation timeline",
+    "Impossible travel analysis (speed calculation)",
+    "List of all changes made during anomaly window",
+    "Account suspension confirmation",
+    "Change reversal log",
+    "PIM review recommendations"
+  ]
+}

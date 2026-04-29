@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Run #{{ run.id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{{ url_for('cases.case_detail', case_id=run.case_id) }}" class="btn btn-outline-secondary btn-sm mb-2">
+      <i class="bi bi-arrow-left"></i> Case #{{ run.case_id }}
+    </a>
+    <h2 class="fw-bold mb-0">{{ playbook.name }}</h2>
+    <div class="d-flex gap-2 mt-1">
+      <span class="badge {% if run.mode == 'dry_run' %}bg-info{% else %}bg-danger{% endif %}">
+        {{ run.mode|replace('_',' ') }}
+      </span>
+      <span class="badge ciq-run-status-{{ run.status }}" id="runStatus">
+        {{ run.status|replace('_',' ') }}
+      </span>
+      <span class="text-muted small">Run #{{ run.id }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    {% if run.status in ['running', 'pending_approval', 'dry_run_complete'] %}
+    <button class="btn btn-primary" id="btnAdvance">
+      <i class="bi bi-skip-forward me-1"></i>Advance Step
+    </button>
+    {% endif %}
+    {% if run.status == 'completed' and run.mode == 'live' %}
+    <button class="btn btn-outline-warning" id="btnRollback">
+      <i class="bi bi-arrow-counterclockwise me-1"></i>Rollback
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Steps log -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2"></i>Execution Log</div>
+      <div class="card-body p-0" id="stepsLog">
+        {% set steps = run.steps_log %}
+        {% if steps %}
+        <div class="list-group list-group-flush">
+          {% for entry in steps %}
+          <div class="list-group-item ciq-list-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge bg-secondary me-2">{{ entry.step + 1 }}</span>
+                <strong>{{ entry.name }}</strong>
+                <span class="badge ms-2
+                  {% if entry.status == 'executed' %}bg-success
+                  {% elif entry.status == 'dry_run_simulated' %}bg-info
+                  {% elif entry.status == 'rolled_back' %}bg-warning text-dark
+                  {% elif entry.status == 'previewed' %}bg-secondary
+                  {% else %}bg-dark{% endif %}">
+                  {{ entry.status|replace('_',' ') }}
+                </span>
+              </div>
+              <span class="text-muted small">{{ entry.timestamp[:16] if entry.timestamp else '' }}</span>
+            </div>
+            {% if entry.preview %}
+            <div class="ms-4 mt-1 text-info small"><i class="bi bi-eye me-1"></i>{{ entry.preview }}</div>
+            {% endif %}
+            {% if entry.requires_approval %}
+            <div class="ms-4 mt-1">
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-person-check me-1"></i>Requires {{ entry.approval_tier|default('analyst') }} approval
+              </span>
+            </div>
+            {% endif %}
+            {% if entry.blast_radius %}
+            <div class="ms-4 mt-1 text-muted small">
+              <i class="bi bi-bullseye me-1"></i>Blast radius: max {{ entry.blast_radius.max_affected|default(1) }} affected
+            </div>
+            {% endif %}
+            {% if entry.rollback_available %}
+            <div class="ms-4 mt-1 text-success small"><i class="bi bi-arrow-counterclockwise me-1"></i>Rollback available</div>
+            {% endif %}
+            {% if entry.safety_constraints %}
+            <div class="ms-4 mt-1 text-muted small">
+              {% for c in entry.safety_constraints %}
+              <span class="badge bg-dark me-1">{{ c|replace('_',' ') }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">No steps logged yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <!-- Pending approvals -->
+    {% if run.approval_requests %}
+    <div class="card ciq-card mb-4 border-warning">
+      <div class="card-header fw-semibold text-warning">
+        <i class="bi bi-person-check me-2"></i>Pending Approvals
+      </div>
+      <div class="card-body p-0">
+        {% for approval in run.approval_requests %}
+        <div class="p-3 border-bottom">
+          <div class="fw-semibold small">Step {{ approval.step_index + 1 }}: {{ approval.step_name }}</div>
+          <div class="badge ciq-approval-{{ approval.status }} my-2">{{ approval.status }}</div>
+          {% if approval.status == 'pending' and current_user.can_approve() %}
+          <div class="d-flex gap-2 mt-2">
+            <button class="btn btn-success btn-sm approve-btn" data-id="{{ approval.id }}" data-decision="approved">
+              <i class="bi bi-check-lg"></i> Approve
+            </button>
+            <button class="btn btn-danger btn-sm approve-btn" data-id="{{ approval.id }}" data-decision="rejected">
+              <i class="bi bi-x-lg"></i> Reject
+            </button>
+          </div>
+          {% elif approval.status == 'pending' %}
+          <div class="text-muted small">Awaiting approver decision</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Run info -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Run Info</div>
+      <div class="card-body">
+        <table class="table table-sm ciq-table mb-0">
+          <tr><td class="text-muted">Case</td><td>#{{ run.case_id }}</td></tr>
+          <tr><td class="text-muted">Mode</td><td>{{ run.mode|replace('_',' ') }}</td></tr>
+          <tr><td class="text-muted">Step</td><td>{{ run.current_step }} / {{ run.playbook.content.get('steps',[])|length }}</td></tr>
+          <tr><td class="text-muted">Started</td><td class="small">{{ run.started_at.strftime('%Y-%m-%d %H:%M') if run.started_at }}</td></tr>
+          {% if run.completed_at %}
+          <tr><td class="text-muted">Completed</td><td class="small">{{ run.completed_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+          {% endif %}
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const RUN_ID = {{ run.id }};
+
+document.getElementById('btnAdvance')?.addEventListener('click', function() {
+  this.disabled = true;
+  fetch(`/playbooks/runs/${RUN_ID}/advance`, {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      this.disabled = false;
+      document.getElementById('runStatus').textContent = d.status.replace(/_/g,' ');
+      setTimeout(() => location.reload(), 800);
+    });
+});
+
+document.getElementById('btnRollback')?.addEventListener('click', function() {
+  if (!confirm('Roll back all executed steps?')) return;
+  fetch(`/playbooks/runs/${RUN_ID}/rollback`, {method:'POST'})
+    .then(() => location.reload());
+});
+
+document.querySelectorAll('.approve-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    const decision = this.dataset.decision;
+    fetch(`/playbooks/runs/${RUN_ID}/approve/${id}`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({decision})
+    }).then(() => location.reload());
+  });
+});
+</script>
+{% endblock %}

@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Security Patches{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-patch-check me-2 text-success"></i>Security Patches</h2>
+    <small class="text-muted">Weekly releases · Daily threat intel → Proposals → Patch → Apply · Full rollback</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('patches.full_changelog') }}" class="btn btn-outline-secondary btn-sm">
+      <i class="bi bi-clock-history me-1"></i>Change Log
+    </a>
+    <a href="{{ url_for('patches.detection_library') }}" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-shield-check me-1"></i>Detections
+    </a>
+    <button class="btn btn-success" id="btnGenerate">
+      <i class="bi bi-arrow-repeat me-1"></i>Generate This Week's Patch
+    </button>
+  </div>
+</div>
+
+<!-- Pipeline overview -->
+<div class="card ciq-card mb-4">
+  <div class="card-body py-3">
+    <div class="d-flex align-items-center gap-0 ciq-pipeline">
+      {% for step, icon, color in [
+        ('Daily Threat Intel', 'broadcast', 'danger'),
+        ('Proposals Generated', 'lightbulb', 'warning'),
+        ('Analyst Review', 'person-check', 'info'),
+        ('Weekly Patch Bundle', 'box-seam', 'primary'),
+        ('Auto/Manual Apply', 'play-circle', 'success'),
+        ('Rollback Available', 'arrow-counterclockwise', 'secondary')
+      ] %}
+      <div class="text-center flex-fill">
+        <div class="badge bg-{{ color }} rounded-circle p-2 mb-1" style="font-size:1.1rem">
+          <i class="bi bi-{{ icon }}"></i>
+        </div>
+        <div class="small text-muted" style="font-size:0.7rem">{{ step }}</div>
+      </div>
+      {% if not loop.last %}
+      <div class="text-muted px-1">→</div>
+      {% endif %}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% if pending %}
+<div class="alert alert-warning d-flex align-items-center gap-3 mb-4">
+  <i class="bi bi-exclamation-triangle-fill fs-4"></i>
+  <div>
+    <strong>{{ pending|length }} patch{{ 'es' if pending|length > 1 }} ready for review.</strong>
+    These contain medium or high-risk changes that require your approval before applying.
+  </div>
+</div>
+{% endif %}
+
+<!-- Patch list -->
+<div class="card ciq-card">
+  <div class="card-header fw-semibold"><i class="bi bi-list me-2"></i>Release History</div>
+  <div class="card-body p-0">
+    {% if patches %}
+    <table class="table table-hover ciq-table mb-0">
+      <thead>
+        <tr>
+          <th>Version</th><th>Week</th><th>Status</th><th>Changes</th>
+          <th>Auto</th><th>Applied</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in patches %}
+        <tr>
+          <td class="fw-semibold font-monospace">{{ p.version }}</td>
+          <td class="text-muted small">Wk {{ p.week_number }}</td>
+          <td>
+            <span class="badge
+              {% if p.status == 'applied' %}bg-success
+              {% elif p.status == 'ready' %}bg-warning text-dark
+              {% elif p.status == 'rolled_back' %}bg-secondary
+              {% elif p.status == 'failed' %}bg-danger
+              {% else %}bg-dark{% endif %}">
+              {{ p.status|replace('_',' ') }}
+            </span>
+          </td>
+          <td>
+            <span class="small">
+              {% if p.new_playbooks %}<span class="badge bg-primary me-1">+{{ p.new_playbooks }} PB</span>{% endif %}
+              {% if p.new_detections %}<span class="badge bg-danger me-1">+{{ p.new_detections }} DET</span>{% endif %}
+              {% if p.new_evidence_reqs %}<span class="badge bg-secondary me-1">+{{ p.new_evidence_reqs }} EV</span>{% endif %}
+              {% if not p.new_playbooks and not p.new_detections and not p.new_evidence_reqs %}
+              <span class="text-muted">no changes</span>{% endif %}
+            </span>
+          </td>
+          <td>
+            {% if p.auto_applied %}
+            <i class="bi bi-robot text-success" title="Auto-applied (all low-risk)"></i>
+            {% else %}
+            <i class="bi bi-person-check text-warning" title="Manual approval required"></i>
+            {% endif %}
+          </td>
+          <td class="text-muted small">
+            {{ p.applied_at.strftime('%Y-%m-%d') if p.applied_at else '—' }}
+          </td>
+          <td>
+            <div class="d-flex gap-1">
+              <a href="{{ url_for('patches.patch_detail', patch_id=p.id) }}"
+                 class="btn btn-sm btn-outline-secondary">View</a>
+              {% if p.status == 'ready' %}
+              <button class="btn btn-sm btn-success apply-btn" data-id="{{ p.id }}">Apply</button>
+              {% endif %}
+              {% if p.status == 'applied' and current_user.can_approve() %}
+              <button class="btn btn-sm btn-outline-warning rollback-btn" data-id="{{ p.id }}">Rollback</button>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-patch-check display-4 text-secondary"></i>
+      <p class="mt-2">No patches generated yet.</p>
+      <p class="small">Patches are generated automatically every Sunday at 03:00 UTC, or click "Generate" above.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById('btnGenerate').addEventListener('click', function() {
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Generating…';
+  fetch('/patches/generate', {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      this.innerHTML = '<i class="bi bi-check-circle me-1"></i>Done';
+      setTimeout(() => location.reload(), 1000);
+    })
+    .catch(() => { this.disabled = false; this.innerHTML = 'Error'; });
+});
+
+document.querySelectorAll('.apply-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Apply this patch now?')) return;
+    this.disabled = true;
+    fetch(`/patches/${id}/apply`, {method:'POST'})
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) location.reload();
+        else alert('Error: ' + d.error);
+      });
+  });
+});
+
+document.querySelectorAll('.rollback-btn').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    if (!confirm('Roll back this patch? All changes will be reversed.')) return;
+    this.disabled = true;
+    fetch(`/patches/${id}/rollback`, {method:'POST'})
+      .then(r => r.json())
+      .then(d => {
+        if (d.ok) location.reload();
+        else alert('Error: ' + d.error);
+      });
+  });
+});
+</script>
+{% endblock %}

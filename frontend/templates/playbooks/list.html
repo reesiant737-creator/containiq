@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Playbooks{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-journal-code me-2 text-primary"></i>Playbooks</h2>
+    <small class="text-muted">Governed response procedures with dry-run, approvals &amp; rollback</small>
+  </div>
+</div>
+
+{% set packs = {'pack_a': ('Phishing / BEC + Identity', 'danger'),
+                'pack_b': ('Ransomware Containment', 'warning'),
+                'pack_c': ('Privileged Access Misuse', 'info')} %}
+
+{% for pack_key, (pack_label, pack_color) in packs.items() %}
+{% set pack_books = playbooks | selectattr('pack', 'equalto', pack_key) | list %}
+{% if pack_books %}
+<div class="mb-4">
+  <h5 class="fw-semibold mb-3">
+    <span class="badge bg-{{ pack_color }} me-2">{{ pack_key|upper }}</span>{{ pack_label }}
+  </h5>
+  <div class="row g-3">
+    {% for pb in pack_books %}
+    <div class="col-md-6 col-lg-4">
+      <div class="card ciq-card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <h6 class="fw-bold mb-0">{{ pb.name }}</h6>
+            <span class="badge bg-secondary">v{{ pb.version }}</span>
+          </div>
+          <p class="text-muted small mb-3">{{ pb.description }}</p>
+          {% set steps = pb.content.get('steps', []) %}
+          <div class="text-muted small mb-3">
+            <i class="bi bi-list-check me-1"></i>{{ steps|length }} steps
+            {% set approval_steps = steps | selectattr('requires_approval') | list %}
+            {% if approval_steps %}
+            · <i class="bi bi-person-check me-1 text-warning"></i>{{ approval_steps|length }} approval gate{{ 's' if approval_steps|length > 1 }}
+            {% endif %}
+          </div>
+          <a href="{{ url_for('playbooks.run_playbook', pb_id=pb.id) }}"
+             class="btn btn-sm btn-outline-primary w-100">
+            <i class="bi bi-play-circle me-1"></i>Run Playbook
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+{% endfor %}
+
+{% if not playbooks %}
+<div class="text-center py-5 text-muted">
+  <i class="bi bi-journal-x display-4"></i>
+  <p class="mt-2">No active playbooks. Check that playbook JSON files are in content/playbooks/.</p>
+</div>
+{% endif %}
+{% endblock %}

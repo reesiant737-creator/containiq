@@ -1,0 +1,188 @@
+/* ── ContainIQ Design System ──────────────────────────────── */
+:root {
+  --ciq-bg: #0d1117;
+  --ciq-surface: #161b22;
+  --ciq-surface-2: #1c2333;
+  --ciq-border: #30363d;
+  --ciq-text: #e6edf3;
+  --ciq-muted: #7d8590;
+  --ciq-primary: #0d6efd;
+  --ciq-danger: #dc3545;
+  --ciq-warning: #ffc107;
+  --ciq-success: #198754;
+  --ciq-info: #0dcaf0;
+}
+
+body.ciq-body {
+  background: var(--ciq-bg);
+  color: var(--ciq-text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  min-height: 100vh;
+}
+
+/* ── Nav ── */
+.ciq-nav {
+  background: var(--ciq-surface) !important;
+  border-bottom: 1px solid var(--ciq-border);
+  padding: 0.5rem 1.5rem;
+}
+.ciq-brand { font-size: 1.1rem; letter-spacing: -0.5px; }
+.navbar-nav .nav-link { color: var(--ciq-muted) !important; font-size: 0.9rem; }
+.navbar-nav .nav-link.active,
+.navbar-nav .nav-link:hover { color: var(--ciq-text) !important; }
+
+/* ── Cards ── */
+.ciq-card {
+  background: var(--ciq-surface);
+  border: 1px solid var(--ciq-border);
+  border-radius: 8px;
+}
+.ciq-card .card-header {
+  background: var(--ciq-surface-2);
+  border-bottom: 1px solid var(--ciq-border);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+.ciq-stat-card { transition: transform 0.15s; }
+.ciq-stat-card:hover { transform: translateY(-2px); }
+
+/* ── Tables ── */
+.ciq-table { color: var(--ciq-text); font-size: 0.875rem; }
+.ciq-table thead th {
+  background: var(--ciq-surface-2);
+  border-color: var(--ciq-border);
+  color: var(--ciq-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  padding: 0.75rem 1rem;
+}
+.ciq-table td { border-color: var(--ciq-border); padding: 0.75rem 1rem; vertical-align: middle; }
+.ciq-table tbody tr:hover { background: var(--ciq-surface-2); }
+
+/* ── List items ── */
+.ciq-list-item {
+  background: transparent;
+  border-color: var(--ciq-border);
+  color: var(--ciq-text);
+}
+.ciq-list-item:hover { background: var(--ciq-surface-2) !important; }
+
+/* ── Severity badges ── */
+.ciq-sev-critical { background: #7c0a02 !important; color: #fff; }
+.ciq-sev-high     { background: var(--ciq-danger) !important; color: #fff; }
+.ciq-sev-medium   { background: var(--ciq-warning) !important; color: #000; }
+.ciq-sev-low      { background: var(--ciq-success) !important; color: #fff; }
+.ciq-sev-informational { background: #6c757d !important; color: #fff; }
+
+/* ── Status badges ── */
+.ciq-status-open          { background: var(--ciq-danger) !important; }
+.ciq-status-investigating { background: var(--ciq-warning) !important; color: #000 !important; }
+.ciq-status-contained     { background: var(--ciq-info) !important; color: #000 !important; }
+.ciq-status-closed        { background: var(--ciq-success) !important; }
+.ciq-status-false_positive { background: #6c757d !important; }
+
+/* ── Run status badges ── */
+.ciq-run-status-running         { background: var(--ciq-primary) !important; }
+.ciq-run-status-pending_approval { background: var(--ciq-warning) !important; color: #000 !important; }
+.ciq-run-status-completed       { background: var(--ciq-success) !important; }
+.ciq-run-status-dry_run_complete { background: var(--ciq-info) !important; color: #000 !important; }
+.ciq-run-status-rolled_back     { background: #6c757d !important; }
+.ciq-run-status-failed          { background: var(--ciq-danger) !important; }
+
+/* ── Approval badges ── */
+.ciq-approval-pending  { background: var(--ciq-warning) !important; color: #000 !important; }
+.ciq-approval-approved { background: var(--ciq-success) !important; color: #fff !important; }
+.ciq-approval-rejected { background: var(--ciq-danger) !important; color: #fff !important; }
+
+/* ── Timeline ── */
+.ciq-timeline { position: relative; padding-left: 1.5rem; }
+.ciq-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--ciq-border);
+}
+.ciq-timeline-item { position: relative; padding: 0.75rem 0 0.75rem 1.5rem; border-bottom: 1px solid var(--ciq-border); }
+.ciq-timeline-item:last-child { border-bottom: none; }
+.ciq-timeline-dot {
+  position: absolute;
+  left: -0.45rem;
+  top: 1rem;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ciq-primary);
+  border: 2px solid var(--ciq-bg);
+}
+.ciq-dot-alert_fired   { background: var(--ciq-danger); }
+.ciq-dot-lateral_movement { background: #ff6b35; }
+.ciq-dot-exfiltration  { background: #9b59b6; }
+.ciq-dot-case_opened   { background: var(--ciq-warning); }
+.ciq-dot-analyst_note  { background: var(--ciq-muted); }
+.ciq-timeline-content { min-height: 2rem; }
+
+/* ── Code / mono blocks ── */
+.ciq-mono { font-family: 'Courier New', monospace; font-size: 0.8rem; }
+.ciq-mono-block {
+  background: #0d1117;
+  border: 1px solid var(--ciq-border);
+  border-radius: 6px;
+  padding: 1rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--ciq-text);
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+/* ── AI bubble ── */
+.ciq-ai-bubble {
+  background: rgba(13, 110, 253, 0.08);
+  border: 1px solid rgba(13, 110, 253, 0.3);
+  border-radius: 8px;
+  padding: 1rem;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* ── Modals ── */
+.ciq-modal {
+  background: var(--ciq-surface);
+  border: 1px solid var(--ciq-border);
+  color: var(--ciq-text);
+}
+.ciq-modal .modal-header { border-color: var(--ciq-border); }
+.ciq-modal .modal-footer { border-color: var(--ciq-border); }
+
+/* ── Form controls ── */
+.form-control, .form-select {
+  background: var(--ciq-surface-2);
+  border-color: var(--ciq-border);
+  color: var(--ciq-text);
+}
+.form-control:focus, .form-select:focus {
+  background: var(--ciq-surface-2);
+  border-color: var(--ciq-primary);
+  color: var(--ciq-text);
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+.form-control::placeholder { color: var(--ciq-muted); }
+
+/* ── Pulse animation for threat badge ── */
+@keyframes pulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.ciq-pulse { animation: pulse 1.5s ease-in-out infinite; }
+
+/* ── Proposal items ── */
+.ciq-proposal-item { border-bottom: 1px solid var(--ciq-border); }
+.ciq-proposal-item:last-child { border-bottom: none; }
+.ciq-proposal-item:hover { background: var(--ciq-surface-2); }

@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Dashboard{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-speedometer2 me-2 text-primary"></i>SOC Dashboard</h2>
+    <small class="text-muted">Real-time incident overview</small>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('cases.create_case') }}" class="btn btn-primary">
+      <i class="bi bi-plus-circle me-1"></i>New Case
+    </a>
+    <button class="btn btn-outline-danger btn-sm" id="runThreatFeed" title="Run threat intel now">
+      <i class="bi bi-broadcast me-1"></i>Sync Threats
+    </button>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card border-danger">
+      <div class="card-body text-center py-3">
+        <div class="display-5 fw-bold text-danger">{{ stats.critical }}</div>
+        <div class="text-muted small">Critical Open</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card border-warning">
+      <div class="card-body text-center py-3">
+        <div class="display-5 fw-bold text-warning">{{ stats.open }}</div>
+        <div class="text-muted small">Open Cases</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card border-info">
+      <div class="card-body text-center py-3">
+        <div class="display-5 fw-bold text-info">{{ stats.investigating }}</div>
+        <div class="text-muted small">Investigating</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card border-success">
+      <div class="card-body text-center py-3">
+        <div class="display-5 fw-bold text-success">{{ stats.contained }}</div>
+        <div class="text-muted small">Contained</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Active cases table -->
+<div class="card ciq-card mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-folder2-open me-2"></i>Active Cases</span>
+    <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary btn-sm">View All</a>
+  </div>
+  <div class="card-body p-0">
+    {% if cases %}
+    <table class="table table-hover ciq-table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Title</th>
+          <th>Severity</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for case in cases %}
+        <tr>
+          <td class="text-muted">{{ case.id }}</td>
+          <td class="fw-semibold">{{ case.title }}</td>
+          <td><span class="badge ciq-sev-{{ case.severity }}">{{ case.severity }}</span></td>
+          <td><span class="badge ciq-status-{{ case.status }}">{{ case.status }}</span></td>
+          <td class="text-muted small">{{ case.created_at.strftime('%Y-%m-%d %H:%M') if case.created_at }}</td>
+          <td>
+            <a href="{{ url_for('cases.case_detail', case_id=case.id) }}"
+               class="btn btn-sm btn-outline-primary">Investigate</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-check-circle display-4 text-success"></i>
+      <p class="mt-2">No active cases — all clear.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Threat intel summary -->
+<div class="card ciq-card">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold"><i class="bi bi-broadcast me-2 text-danger"></i>Latest Threat Intel</span>
+    <a href="{{ url_for('threat_feed.threat_dashboard') }}" class="btn btn-outline-secondary btn-sm">Full Feed</a>
+  </div>
+  <div class="card-body" id="threatSummaryPanel">
+    <div class="text-muted small">Loading threat intel…</div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Load latest threat update
+fetch('/threats/api/latest')
+  .then(r => r.json())
+  .then(d => {
+    const p = document.getElementById('threatSummaryPanel');
+    if (d.message) { p.innerHTML = `<span class="text-muted">${d.message}</span>`; return; }
+    p.innerHTML = `
+      <div class="row g-3">
+        <div class="col-md-3 text-center">
+          <div class="fw-bold text-info fs-4">${d.iocs_found}</div>
+          <div class="text-muted small">IOCs Found</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="fw-bold text-warning fs-4">${d.proposals_generated}</div>
+          <div class="text-muted small">Proposals Queued</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="fw-bold text-success fs-4">${d.sources_checked}</div>
+          <div class="text-muted small">Feeds Checked</div>
+        </div>
+        <div class="col-md-3 text-center">
+          <div class="fw-bold text-muted small">${d.run_date}</div>
+          <div class="text-muted small">Last Run</div>
+        </div>
+      </div>`;
+  })
+  .catch(() => {
+    document.getElementById('threatSummaryPanel').innerHTML =
+      '<span class="text-muted small">Threat feed not yet run. Use "Sync Threats" to trigger.</span>';
+  });
+
+// Manual threat feed trigger
+document.getElementById('runThreatFeed').addEventListener('click', function() {
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Running…';
+  fetch('/threats/run-now', {method:'POST', headers:{'Content-Type':'application/json'}})
+    .then(r => r.json())
+    .then(d => {
+      this.innerHTML = '<i class="bi bi-check-circle me-1"></i>Done';
+      setTimeout(() => location.reload(), 1500);
+    })
+    .catch(() => { this.innerHTML = 'Error'; this.disabled = false; });
+});
+</script>
+{% endblock %}

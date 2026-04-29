@@ -1,0 +1,88 @@
+{
+  "name": "OAuth App Consent Abuse / Token Theft",
+  "description": "Contain an adversary who obtained access via malicious OAuth app consent or stolen access/refresh tokens. Covers AiTM phishing and session hijacking patterns.",
+  "pack": "pack_a",
+  "signals_required": ["oauth_grant_to_unknown_app", "or", "impossible_travel", "or", "token_replay_indicator"],
+  "mitre_techniques": ["T1550.001", "T1528", "T1566.002"],
+  "blast_radius_limits": {"max_affected": 1, "scope": "single_user"},
+  "steps": [
+    {
+      "name": "Identify the malicious OAuth application",
+      "description": "Enumerate all OAuth apps with delegated permissions for the affected user. Flag any app not on the approved application inventory.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would query Microsoft Graph /me/oauth2PermissionGrants and compare against sanctioned app list.",
+      "verification": {"check": "malicious_app_identified", "expected": "app_id_captured"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Revoke all refresh tokens (revokeSignInSessions)",
+      "description": "Immediately invalidate all issued tokens for the affected account. Access tokens (1hr TTL) remain valid until expiry — monitor during this window.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would POST to /users/{id}/revokeSignInSessions. All refresh tokens invalidated. Access tokens live up to 1 hour.",
+      "verification": {"check": "signInSessions_revoked", "expected": "true"},
+      "safety_constraints": ["access_tokens_live_up_to_1hr_after_revocation", "monitor_during_window"],
+      "rollback": {"action": "none", "note": "Token revocation is irreversible. User must re-authenticate."},
+      "blast_radius": {"max_affected": 1, "scope": "single_user_tokens"}
+    },
+    {
+      "name": "Remove the malicious OAuth app consent grant",
+      "description": "Delete the OAuth2PermissionGrant for the malicious application. This removes delegated access going forward.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would DELETE /oauth2PermissionGrants/{grant_id} for the identified malicious app.",
+      "verification": {"check": "grant_removed", "expected": "404_on_subsequent_get"},
+      "safety_constraints": ["confirm_app_is_malicious_before_removal"],
+      "rollback": {"action": "re_add_consent_grant", "note": "User re-consents to legitimate apps if accidentally removed."},
+      "blast_radius": {"max_affected": 1, "scope": "single_oauth_grant"}
+    },
+    {
+      "name": "Block the malicious application tenant-wide",
+      "description": "Disable the service principal for the malicious app in the tenant to prevent any other user from consenting to it.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would PATCH /servicePrincipals/{id} with accountEnabled: false. Blocks app for all users in tenant.",
+      "verification": {"check": "service_principal_disabled", "expected": "accountEnabled_false"},
+      "safety_constraints": ["affects_all_users_in_tenant", "confirm_app_is_not_legitimate_shared_tool"],
+      "rollback": {"action": "re_enable_service_principal", "params": {"sp_id": "captured_before_disable"}},
+      "blast_radius": {"max_affected": 999, "scope": "tenant_wide_app_block"}
+    },
+    {
+      "name": "Review and contain accessed data",
+      "description": "Determine what data the malicious app accessed via the delegated permissions. Check mail read, file access, and calendar events during the attack window.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would review audit logs for all API calls made by the malicious app's service principal during the compromise window.",
+      "verification": {"check": "data_access_scoped", "expected": "accessed_resources_documented"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Enable conditional access policy — block legacy auth",
+      "description": "If legacy authentication protocols were exploited, enable a Conditional Access policy to block them tenant-wide.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would create CA policy: Block legacy authentication for all users. Test in report-only mode for 24h first.",
+      "verification": {"check": "legacy_auth_blocked", "expected": "ca_policy_active"},
+      "safety_constraints": ["test_in_report_only_mode_first", "legacy_apps_may_break"],
+      "rollback": {"action": "disable_ca_policy", "params": {"policy_id": "captured_on_creation"}},
+      "blast_radius": {"max_affected": 999, "scope": "tenant_wide_legacy_auth"}
+    }
+  ],
+  "evidence_checklist": [
+    "OAuth app name, client ID, and permission scopes",
+    "Consent grant creation timestamp and actor",
+    "Token issuance logs during attack window",
+    "Data accessed via malicious app (mail, files, calendar)",
+    "Service principal disable confirmation",
+    "CA policy deployment confirmation"
+  ]
+}

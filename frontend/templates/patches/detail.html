@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Patch {{ patch.version }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <a href="{{ url_for('patches.patch_dashboard') }}" class="btn btn-outline-secondary btn-sm mb-2">
+      <i class="bi bi-arrow-left"></i> Patches
+    </a>
+    <h2 class="fw-bold mb-0 font-monospace">{{ patch.version }}</h2>
+    <div class="d-flex gap-2 mt-1">
+      <span class="badge {% if patch.status == 'applied' %}bg-success{% elif patch.status == 'ready' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+        {{ patch.status }}
+      </span>
+      {% if patch.auto_applied %}<span class="badge bg-info text-dark"><i class="bi bi-robot me-1"></i>Auto-applied</span>{% endif %}
+      <span class="text-muted small">Week {{ patch.week_number }}</span>
+    </div>
+  </div>
+  {% if patch.status == 'ready' %}
+  <button class="btn btn-success" id="btnApply">
+    <i class="bi bi-play-circle me-1"></i>Apply Patch
+  </button>
+  {% elif patch.status == 'applied' and current_user.can_approve() %}
+  <button class="btn btn-outline-warning" id="btnRollback">
+    <i class="bi bi-arrow-counterclockwise me-1"></i>Rollback
+  </button>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-8">
+    <!-- Summary -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Patch Summary</div>
+      <div class="card-body">
+        <p class="mb-0">{{ patch.summary }}</p>
+      </div>
+    </div>
+
+    <!-- Changes -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-list-check me-2"></i>Changes ({{ patch.changes|length }})</div>
+      <div class="card-body p-0">
+        {% if patch.changes %}
+        <div class="list-group list-group-flush">
+          {% for change in patch.changes %}
+          <div class="list-group-item ciq-list-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge
+                  {% if change.type == 'detection_added' %}bg-danger
+                  {% elif change.type == 'playbook_added' %}bg-primary
+                  {% elif 'updated' in change.type %}bg-warning text-dark
+                  {% else %}bg-secondary{% endif %} me-2">
+                  {{ change.type|replace('_',' ') }}
+                </span>
+                <strong>{{ change.title }}</strong>
+              </div>
+              <span class="badge
+                {% if change.risk == 'low' %}bg-success
+                {% elif change.risk == 'medium' %}bg-warning text-dark
+                {% else %}bg-danger{% endif %}">
+                {{ change.risk }} risk
+              </span>
+            </div>
+            {% if change.description %}
+            <p class="text-muted small mt-1 mb-0">{{ change.description[:200] }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted small">No changes in this patch.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Applied changelog -->
+    {% if changelog %}
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-clock-history me-2"></i>Applied Changes</div>
+      <div class="card-body p-0">
+        <table class="table table-hover ciq-table mb-0">
+          <thead><tr><th>Change</th><th>Resource</th><th>Risk</th><th>Applied</th></tr></thead>
+          <tbody>
+            {% for entry in changelog %}
+            <tr>
+              <td><span class="badge bg-secondary">{{ entry.change_type|replace('_',' ') }}</span></td>
+              <td class="small">{{ entry.resource_name }}</td>
+              <td><span class="badge {% if entry.risk_level == 'low' %}bg-success{% elif entry.risk_level == 'medium' %}bg-warning text-dark{% else %}bg-danger{% endif %}">{{ entry.risk_level }}</span></td>
+              <td class="text-muted small">{{ entry.created_at.strftime('%Y-%m-%d %H:%M') if entry.created_at }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-bar-chart me-2"></i>Change Breakdown</div>
+      <div class="card-body">
+        <table class="table table-sm ciq-table mb-0">
+          <tr><td class="text-muted">New Playbooks</td><td class="fw-bold text-primary">{{ patch.new_playbooks }}</td></tr>
+          <tr><td class="text-muted">Updated Playbooks</td><td class="fw-bold text-warning">{{ patch.updated_playbooks }}</td></tr>
+          <tr><td class="text-muted">New Detections</td><td class="fw-bold text-danger">{{ patch.new_detections }}</td></tr>
+          <tr><td class="text-muted">Updated Detections</td><td class="fw-bold text-warning">{{ patch.updated_detections }}</td></tr>
+          <tr><td class="text-muted">Evidence Req Updates</td><td class="fw-bold text-info">{{ patch.new_evidence_reqs }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-arrow-counterclockwise me-2"></i>Rollback Plan</div>
+      <div class="card-body p-0">
+        {% if patch.rollback_manifest %}
+        <ul class="list-group list-group-flush">
+          {% for item in patch.rollback_manifest %}
+          <li class="list-group-item ciq-list-item small py-2">
+            <i class="bi bi-arrow-left me-1 text-warning"></i>
+            {{ item.action|replace('_',' ')|title }}: {{ item.get('name', item.get('description', '')) }}
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">No rollback steps.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PATCH_ID = {{ patch.id }};
+document.getElementById('btnApply')?.addEventListener('click', function() {
+  if (!confirm('Apply patch {{ patch.version }}?')) return;
+  this.disabled = true;
+  fetch(`/patches/${PATCH_ID}/apply`, {method:'POST'})
+    .then(r => r.json()).then(d => {
+      if (d.ok) location.reload();
+      else alert('Error: ' + d.error);
+    });
+});
+document.getElementById('btnRollback')?.addEventListener('click', function() {
+  if (!confirm('Roll back patch {{ patch.version }}? All changes will be reversed.')) return;
+  this.disabled = true;
+  fetch(`/patches/${PATCH_ID}/rollback`, {method:'POST'})
+    .then(r => r.json()).then(d => {
+      if (d.ok) location.reload();
+      else alert('Error: ' + d.error);
+    });
+});
+</script>
+{% endblock %}

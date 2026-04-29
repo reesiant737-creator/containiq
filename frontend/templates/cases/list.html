@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Cases{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0"><i class="bi bi-folder2-open me-2 text-primary"></i>Cases</h2>
+  <a href="{{ url_for('cases.create_case') }}" class="btn btn-primary">
+    <i class="bi bi-plus-circle me-1"></i>New Case
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card ciq-card mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <select name="severity" class="form-select form-select-sm">
+          <option value="">All Severities</option>
+          {% for s in severities %}
+          <option value="{{ s }}" {% if request.args.get('severity')==s %}selected{% endif %}>{{ s|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          {% for s in statuses %}
+          <option value="{{ s }}" {% if request.args.get('status')==s %}selected{% endif %}>{{ s|replace('_',' ')|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+        <a href="{{ url_for('cases.list_cases') }}" class="btn btn-sm btn-outline-secondary ms-1">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card ciq-card">
+  <div class="card-body p-0">
+    {% if cases %}
+    <table class="table table-hover ciq-table mb-0">
+      <thead>
+        <tr>
+          <th>#</th><th>Title</th><th>Severity</th><th>Status</th>
+          <th>Source</th><th>Created</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for case in cases %}
+        <tr>
+          <td class="text-muted">{{ case.id }}</td>
+          <td>
+            <div class="fw-semibold">{{ case.title }}</div>
+            {% if case.entities %}
+            <div class="text-muted small">
+              {% for e in case.entities[:3] %}
+              <span class="badge bg-secondary me-1">{{ e.entity_type }}: {{ e.value[:20] }}</span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </td>
+          <td><span class="badge ciq-sev-{{ case.severity }}">{{ case.severity }}</span></td>
+          <td><span class="badge ciq-status-{{ case.status }}">{{ case.status|replace('_',' ') }}</span></td>
+          <td class="text-muted small">{{ case.source or '—' }}</td>
+          <td class="text-muted small">{{ case.created_at.strftime('%Y-%m-%d %H:%M') if case.created_at }}</td>
+          <td>
+            <a href="{{ url_for('cases.case_detail', case_id=case.id) }}"
+               class="btn btn-sm btn-outline-primary">Open</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-folder2 display-4"></i>
+      <p class="mt-2">No cases match the current filter.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

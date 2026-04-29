@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Run {{ playbook.name }}{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <a href="{{ url_for('playbooks.list_playbooks') }}" class="btn btn-outline-secondary btn-sm mb-3">
+      <i class="bi bi-arrow-left"></i> Playbooks
+    </a>
+    <div class="card ciq-card mb-4">
+      <div class="card-header">
+        <h5 class="fw-bold mb-0"><i class="bi bi-play-circle me-2 text-primary"></i>{{ playbook.name }}</h5>
+        <small class="text-muted">{{ playbook.description }}</small>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Link to Case <span class="text-danger">*</span></label>
+            <select name="case_id" class="form-select" required>
+              <option value="">— select a case —</option>
+              {% for c in cases %}
+              <option value="{{ c.id }}" {% if request.args.get('case_id')|int == c.id %}selected{% endif %}>
+                #{{ c.id }} · {{ c.title }} [{{ c.severity }}]
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Run Mode</label>
+            <div class="row g-3">
+              <div class="col-md-6">
+                <input type="radio" class="btn-check" name="mode" id="modeDry" value="dry_run" checked/>
+                <label class="btn btn-outline-info w-100 text-start p-3" for="modeDry">
+                  <i class="bi bi-eye me-2"></i><strong>Dry Run</strong>
+                  <div class="small text-muted mt-1">Preview all steps with blast-radius estimates. No actions executed.</div>
+                </label>
+              </div>
+              <div class="col-md-6">
+                <input type="radio" class="btn-check" name="mode" id="modeLive" value="live"/>
+                <label class="btn btn-outline-danger w-100 text-start p-3" for="modeLive">
+                  <i class="bi bi-lightning-charge me-2"></i><strong>Live Execution</strong>
+                  <div class="small text-muted mt-1">Execute with approval gates and rollback available.</div>
+                </label>
+              </div>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary px-4">
+            <i class="bi bi-play-fill me-1"></i>Initialize Run
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Playbook preview -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-list-ol me-2"></i>Steps Preview</div>
+      <div class="card-body p-0">
+        {% set steps = playbook.content.get('steps', []) %}
+        {% if steps %}
+        <div class="list-group list-group-flush">
+          {% for step in steps %}
+          <div class="list-group-item ciq-list-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge bg-secondary me-2">{{ loop.index }}</span>
+                <strong>{{ step.name }}</strong>
+                {% if step.requires_approval %}
+                <span class="badge bg-warning text-dark ms-2">
+                  <i class="bi bi-person-check me-1"></i>Approval: {{ step.approval_tier|default('analyst') }}
+                </span>
+                {% endif %}
+              </div>
+              {% if step.blast_radius %}
+              <span class="badge bg-outline-secondary text-muted small">
+                max {{ step.blast_radius.max_affected|default(1) }} affected
+              </span>
+              {% endif %}
+            </div>
+            <p class="text-muted small mb-1 mt-1 ms-4">{{ step.description }}</p>
+            {% if step.dry_run_preview %}
+            <div class="ms-4 text-info small"><i class="bi bi-eye me-1"></i>{{ step.dry_run_preview }}</div>
+            {% endif %}
+            {% if step.rollback %}
+            <div class="ms-4 text-success small mt-1"><i class="bi bi-arrow-counterclockwise me-1"></i>Rollback available</div>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">No steps defined.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

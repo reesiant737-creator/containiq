@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Case #{{ case.id }}{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-start mb-4">
+  <div>
+    <a href="{{ url_for('cases.list_cases') }}" class="btn btn-outline-secondary btn-sm mb-2">
+      <i class="bi bi-arrow-left"></i> Cases
+    </a>
+    <h2 class="fw-bold mb-0">{{ case.title }}</h2>
+    <div class="d-flex gap-2 mt-1">
+      <span class="badge ciq-sev-{{ case.severity }}">{{ case.severity }}</span>
+      <span class="badge ciq-status-{{ case.status }}" id="statusBadge">{{ case.status|replace('_',' ') }}</span>
+      <span class="text-muted small">Case #{{ case.id }} · {{ case.created_at.strftime('%Y-%m-%d %H:%M UTC') if case.created_at }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2">
+    <div class="dropdown">
+      <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="bi bi-arrow-repeat me-1"></i>Set Status
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        {% for s in ['open','investigating','contained','closed','false_positive'] %}
+        <li><a class="dropdown-item status-change" href="#" data-status="{{ s }}">{{ s|replace('_',' ')|title }}</a></li>
+        {% endfor %}
+      </ul>
+    </div>
+    <button class="btn btn-primary btn-sm" id="btnAIAnalyze">
+      <i class="bi bi-cpu me-1"></i>AI Analyze
+    </button>
+    <a href="{{ url_for('reports.reports_home') }}" class="btn btn-outline-info btn-sm">
+      <i class="bi bi-file-earmark-text me-1"></i>Report
+    </a>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Left column: timeline + entities -->
+  <div class="col-lg-7">
+
+    <!-- AI Analysis Panel -->
+    <div class="card ciq-card mb-4" id="aiPanel" style="display:none!important">
+      <div class="card-header bg-primary bg-opacity-10 fw-semibold">
+        <i class="bi bi-cpu me-2"></i>AI Analysis
+        <span class="spinner-border spinner-border-sm ms-2" id="aiSpinner"></span>
+      </div>
+      <div class="card-body" id="aiContent"></div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-clock-history me-2"></i>Timeline</span>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addEventModal">
+          <i class="bi bi-plus"></i> Add Event
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if case.timeline %}
+        <div class="ciq-timeline px-3 py-2">
+          {% for event in case.timeline %}
+          <div class="ciq-timeline-item">
+            <div class="ciq-timeline-dot ciq-dot-{{ event.event_type }}"></div>
+            <div class="ciq-timeline-content">
+              <div class="d-flex justify-content-between">
+                <span class="fw-semibold small">{{ event.event_type|replace('_',' ')|title }}</span>
+                <span class="text-muted small">{{ event.event_time.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+              </div>
+              <p class="mb-0 small mt-1">{{ event.description }}</p>
+              {% if event.source %}<span class="badge bg-secondary mt-1">{{ event.source }}</span>{% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted small">No timeline events yet.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Threat Hunt -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-search me-2 text-warning"></i>AI Threat Hunting
+      </div>
+      <div class="card-body">
+        <div class="row g-2 mb-3">
+          <div class="col">
+            <input type="text" id="huntQuestion" class="form-control"
+                   placeholder="e.g. Hunt for lateral movement from this IP in last 48h"/>
+          </div>
+          <div class="col-auto">
+            <select id="huntSiem" class="form-select">
+              <option value="splunk">Splunk SPL</option>
+              <option value="sentinel">Sentinel KQL</option>
+              <option value="elastic">Elastic EQL</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <button class="btn btn-warning" id="btnHunt">
+              <i class="bi bi-search"></i> Hunt
+            </button>
+          </div>
+        </div>
+        <div id="huntResults" class="d-none">
+          <div id="huntContent" class="ciq-mono-block"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ask AI -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold">
+        <i class="bi bi-chat-dots me-2 text-info"></i>Ask the AI Analyst
+      </div>
+      <div class="card-body">
+        <div class="input-group">
+          <input type="text" id="askQuestion" class="form-control"
+                 placeholder="Ask anything about this incident…"/>
+          <button class="btn btn-info" id="btnAsk">Ask</button>
+        </div>
+        <div id="askAnswer" class="mt-3 d-none">
+          <div class="ciq-ai-bubble" id="askContent"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: entities, evidence, playbooks -->
+  <div class="col-lg-5">
+
+    <!-- Entities -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-diagram-2 me-2"></i>Entities</div>
+      <div class="card-body p-0">
+        {% if case.entities %}
+        <ul class="list-group list-group-flush">
+          {% for e in case.entities %}
+          <li class="list-group-item ciq-list-item d-flex justify-content-between align-items-center">
+            <div>
+              <span class="badge bg-secondary me-2">{{ e.entity_type }}</span>
+              <code class="small">{{ e.value }}</code>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">No entities added.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Evidence -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-semibold"><i class="bi bi-paperclip me-2"></i>Evidence</span>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addEvidenceModal">
+          <i class="bi bi-plus"></i>
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if case.evidence %}
+        <ul class="list-group list-group-flush">
+          {% for ev in case.evidence %}
+          <li class="list-group-item ciq-list-item">
+            <div class="fw-semibold small">{{ ev.name }}</div>
+            <div class="text-muted small">{{ ev.evidence_type }} · {{ ev.created_at.strftime('%m-%d %H:%M') }}</div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="text-center py-3 text-muted small">No evidence attached.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Playbook runner -->
+    <div class="card ciq-card mb-4">
+      <div class="card-header fw-semibold"><i class="bi bi-journal-code me-2"></i>Run a Playbook</div>
+      <div class="card-body">
+        <div class="mb-2" id="pbRecommendArea"></div>
+        {% if playbooks %}
+        <div class="d-grid gap-2">
+          {% for pb in playbooks %}
+          <a href="{{ url_for('playbooks.run_playbook', pb_id=pb.id) }}?case_id={{ case.id }}"
+             class="btn btn-outline-secondary btn-sm text-start">
+            <i class="bi bi-play-circle me-1"></i>{{ pb.name }}
+            <span class="badge bg-secondary float-end">{{ pb.pack }}</span>
+          </a>
+          {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-muted small">No active playbooks.</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Report generation -->
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Generate Report</div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <button class="btn btn-outline-info btn-sm" onclick="generateReport('incident')">
+            <i class="bi bi-file-text me-1"></i>Incident Report
+          </button>
+          <button class="btn btn-outline-warning btn-sm" onclick="generateReport('nist')">
+            <i class="bi bi-diagram-3 me-1"></i>NIST CSF Mapping
+          </button>
+          <button class="btn btn-outline-success btn-sm" onclick="generateReport('audit_packet')">
+            <i class="bi bi-shield-check me-1"></i>Audit Packet
+          </button>
+          <a href="/reports/generate/{{ case.id }}" onclick="event.preventDefault(); generatePdf()"
+             class="btn btn-outline-danger btn-sm">
+            <i class="bi bi-filetype-pdf me-1"></i>Export PDF
+          </a>
+        </div>
+        <div id="reportOutput" class="mt-3 d-none">
+          <pre id="reportContent" class="ciq-mono-block small" style="max-height:300px;overflow-y:auto"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Timeline Event Modal -->
+<div class="modal fade" id="addEventModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ciq-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Timeline Event</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Event Type</label>
+          <select id="evType" class="form-select">
+            <option value="analyst_note">Analyst Note</option>
+            <option value="alert_fired">Alert Fired</option>
+            <option value="login">Login</option>
+            <option value="file_access">File Access</option>
+            <option value="network_connection">Network Connection</option>
+            <option value="process_execution">Process Execution</option>
+            <option value="lateral_movement">Lateral Movement</option>
+            <option value="exfiltration">Exfiltration</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Description</label>
+          <textarea id="evDesc" class="form-control" rows="3"></textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Source</label>
+          <input type="text" id="evSource" class="form-control" placeholder="Splunk, Sentinel, manual…"/>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveEvent">Save Event</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add Evidence Modal -->
+<div class="modal fade" id="addEvidenceModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content ciq-modal">
+      <div class="modal-header">
+        <h5 class="modal-title">Add Evidence</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label">Name</label>
+          <input type="text" id="evName" class="form-control" placeholder="e.g. Splunk search results"/>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Type</label>
+          <select id="evEvidenceType" class="form-select">
+            <option value="log">Log</option>
+            <option value="screenshot">Screenshot</option>
+            <option value="ioc">IOC</option>
+            <option value="url">URL</option>
+            <option value="file">File</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Content</label>
+          <textarea id="evContent" class="form-control ciq-mono" rows="4"
+                    placeholder="Paste log lines, IOCs, or notes…"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary" id="btnSaveEvidence">Save Evidence</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const CASE_ID = {{ case.id }};
+
+// Status change
+document.querySelectorAll('.status-change').forEach(el => {
+  el.addEventListener('click', function(e) {
+    e.preventDefault();
+    fetch(`/cases/${CASE_ID}/status`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({status: this.dataset.status})
+    }).then(r => r.json()).then(d => {
+      document.getElementById('statusBadge').textContent = d.status.replace(/_/g,' ');
+    });
+  });
+});
+
+// AI Analyze
+document.getElementById('btnAIAnalyze').addEventListener('click', function() {
+  const panel = document.getElementById('aiPanel');
+  panel.style.display = 'block';
+  document.getElementById('aiSpinner').style.display = 'inline-block';
+  document.getElementById('aiContent').innerHTML = '<span class="text-muted">Analyzing with Claude…</span>';
+  fetch(`/ai/analyze/${CASE_ID}`, {method:'POST'})
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('aiSpinner').style.display = 'none';
+      const mitre = (d.mitre_techniques||[]).map(t =>
+        `<span class="badge bg-danger me-1">${t.id} ${t.name} (${t.confidence})</span>`).join('');
+      document.getElementById('aiContent').innerHTML = `
+        <p><strong>Summary:</strong> ${d.summary||d.raw||'No summary'}</p>
+        <p><strong>Attack Stage:</strong> <span class="badge bg-warning text-dark">${d.attack_stage||'unknown'}</span></p>
+        ${mitre ? `<p><strong>MITRE:</strong> ${mitre}</p>` : ''}
+        ${d.severity_rationale ? `<p><strong>Severity Rationale:</strong> ${d.severity_rationale}</p>` : ''}
+        ${(d.immediate_actions||[]).length ? `<p><strong>Immediate Actions:</strong><ul>${d.immediate_actions.map(a=>`<li>${a}</li>`).join('')}</ul></p>` : ''}
+        ${(d.investigation_gaps||[]).length ? `<p><strong>Gaps:</strong><ul>${d.investigation_gaps.map(g=>`<li>${g}</li>`).join('')}</ul></p>` : ''}`;
+    })
+    .catch(() => { document.getElementById('aiContent').innerHTML = '<span class="text-danger">Analysis failed — check API key.</span>'; });
+});
+
+// Threat hunting
+document.getElementById('btnHunt').addEventListener('click', function() {
+  const q = document.getElementById('huntQuestion').value.trim();
+  const siem = document.getElementById('huntSiem').value;
+  if (!q) return;
+  this.disabled = true;
+  this.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+  fetch(`/ai/hunt-queries/${CASE_ID}`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({question: q, siem})
+  }).then(r => r.json()).then(d => {
+    this.disabled = false; this.innerHTML = '<i class="bi bi-search"></i> Hunt';
+    const res = document.getElementById('huntResults');
+    res.classList.remove('d-none');
+    const queries = d.queries||[];
+    document.getElementById('huntContent').innerHTML =
+      queries.map(q => `<div class="mb-3"><strong>${q.name}</strong><br><small class="text-muted">${q.description}</small><pre class="mt-1 p-2 bg-dark rounded">${q.query}</pre></div>`).join('')
+      || (d.raw ? `<pre>${d.raw}</pre>` : 'No queries generated.');
+  }).catch(() => { this.disabled = false; this.innerHTML = '<i class="bi bi-search"></i> Hunt'; });
+});
+
+// Ask analyst
+document.getElementById('btnAsk').addEventListener('click', function() {
+  const q = document.getElementById('askQuestion').value.trim();
+  if (!q) return;
+  this.disabled = true;
+  fetch(`/ai/ask/${CASE_ID}`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({question: q})
+  }).then(r => r.json()).then(d => {
+    this.disabled = false;
+    const area = document.getElementById('askAnswer');
+    area.classList.remove('d-none');
+    document.getElementById('askContent').textContent = d.answer || d.error;
+  }).catch(() => { this.disabled = false; });
+});
+
+// Add timeline event
+document.getElementById('btnSaveEvent').addEventListener('click', function() {
+  fetch(`/cases/${CASE_ID}/timeline`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      event_type: document.getElementById('evType').value,
+      description: document.getElementById('evDesc').value,
+      source: document.getElementById('evSource').value,
+    })
+  }).then(() => location.reload());
+});
+
+// Add evidence
+document.getElementById('btnSaveEvidence').addEventListener('click', function() {
+  fetch(`/cases/${CASE_ID}/evidence`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({
+      name: document.getElementById('evName').value,
+      type: document.getElementById('evEvidenceType').value,
+      content: document.getElementById('evContent').value,
+    })
+  }).then(() => location.reload());
+});
+
+// Generate report
+function generateReport(type) {
+  const fd = new FormData();
+  fd.append('report_type', type);
+  fetch(`/reports/generate/${CASE_ID}`, {method:'POST', body: fd})
+    .then(r => r.json())
+    .then(d => {
+      const out = document.getElementById('reportOutput');
+      out.classList.remove('d-none');
+      document.getElementById('reportContent').textContent = JSON.stringify(d.content, null, 2);
+    });
+}
+
+function generatePdf() {
+  const fd = new FormData();
+  fd.append('report_type', 'pdf');
+  fetch(`/reports/generate/${CASE_ID}`, {method:'POST', body: fd})
+    .then(r => r.blob())
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `containiq-case-${CASE_ID}.pdf`;
+      a.click();
+    });
+}
+
+// Load playbook recommendation
+fetch(`/ai/playbook-recommend/${CASE_ID}`, {method:'POST'})
+  .then(r => r.json())
+  .then(d => {
+    if (d.recommended_name) {
+      document.getElementById('pbRecommendArea').innerHTML =
+        `<div class="alert alert-info py-2 small mb-2">
+          <i class="bi bi-cpu me-1"></i><strong>AI recommends:</strong> ${d.recommended_name}
+          <span class="badge bg-info ms-1">${d.confidence} confidence</span>
+        </div>`;
+    }
+  }).catch(()=>{});
+</script>
+{% endblock %}

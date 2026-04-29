@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}ContainIQ — Reports{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-0"><i class="bi bi-file-earmark-bar-graph me-2 text-primary"></i>Reports &amp; Audit Packets</h2>
+    <small class="text-muted">One-click incident reports, audit packets, NIST CSF mapping, PDF export</small>
+  </div>
+  <a href="{{ url_for('reports.nist_framework') }}" class="btn btn-outline-info">
+    <i class="bi bi-diagram-3 me-1"></i>NIST CSF Overview
+  </a>
+</div>
+
+<div class="row g-4">
+  <div class="col-lg-5">
+    <div class="card ciq-card">
+      <div class="card-header fw-semibold"><i class="bi bi-folder2 me-2"></i>Select Case</div>
+      <div class="card-body p-0">
+        <div class="list-group list-group-flush" id="caseList">
+          {% for case in cases %}
+          <button class="list-group-item list-group-item-action ciq-list-item case-select"
+                  data-id="{{ case.id }}" data-title="{{ case.title }}">
+            <div class="d-flex justify-content-between">
+              <span class="fw-semibold">#{{ case.id }} {{ case.title[:45] }}</span>
+              <span class="badge ciq-sev-{{ case.severity }}">{{ case.severity }}</span>
+            </div>
+            <small class="text-muted">{{ case.status }} · {{ case.created_at.strftime('%Y-%m-%d') if case.created_at }}</small>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <div class="card ciq-card mb-4" id="reportPanel">
+      <div class="card-header fw-semibold"><i class="bi bi-file-earmark-text me-2"></i>Generate Report</div>
+      <div class="card-body">
+        <div id="noSelection" class="text-center py-4 text-muted">
+          <i class="bi bi-arrow-left-circle display-4"></i>
+          <p class="mt-2">Select a case to generate reports.</p>
+        </div>
+        <div id="reportActions" style="display:none">
+          <h6 class="fw-bold mb-3" id="selectedCaseTitle"></h6>
+          <div class="row g-2 mb-4">
+            <div class="col-6">
+              <button class="btn btn-outline-info w-100" onclick="genReport('incident')">
+                <i class="bi bi-file-text me-1"></i>Incident Report
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-warning w-100" onclick="genReport('nist')">
+                <i class="bi bi-diagram-3 me-1"></i>NIST CSF Map
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-success w-100" onclick="genReport('audit_packet')">
+                <i class="bi bi-shield-check me-1"></i>Audit Packet
+              </button>
+            </div>
+            <div class="col-6">
+              <button class="btn btn-outline-danger w-100" onclick="genPdf()">
+                <i class="bi bi-filetype-pdf me-1"></i>Export PDF
+              </button>
+            </div>
+          </div>
+          <div id="reportSpinner" class="text-center py-3 d-none">
+            <div class="spinner-border text-primary"></div>
+            <p class="mt-2 text-muted small">Generating with Claude…</p>
+          </div>
+          <div id="reportResult" class="d-none">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="fw-semibold small" id="reportTypeLabel"></span>
+              <button class="btn btn-sm btn-outline-secondary" onclick="copyReport()">
+                <i class="bi bi-clipboard me-1"></i>Copy
+              </button>
+            </div>
+            <pre id="reportContent" class="ciq-mono-block small" style="max-height:400px;overflow-y:auto"></pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let selectedCaseId = null;
+
+document.querySelectorAll('.case-select').forEach(btn => {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.case-select').forEach(b => b.classList.remove('active'));
+    this.classList.add('active');
+    selectedCaseId = this.dataset.id;
+    document.getElementById('noSelection').style.display = 'none';
+    document.getElementById('reportActions').style.display = 'block';
+    document.getElementById('selectedCaseTitle').textContent = `Case #${selectedCaseId}: ${this.dataset.title}`;
+    document.getElementById('reportResult').classList.add('d-none');
+  });
+});
+
+function genReport(type) {
+  if (!selectedCaseId) return;
+  document.getElementById('reportSpinner').classList.remove('d-none');
+  document.getElementById('reportResult').classList.add('d-none');
+  const fd = new FormData();
+  fd.append('report_type', type);
+  fetch(`/reports/generate/${selectedCaseId}`, {method:'POST', body: fd})
+    .then(r => r.json())
+    .then(d => {
+      document.getElementById('reportSpinner').classList.add('d-none');
+      document.getElementById('reportResult').classList.remove('d-none');
+      document.getElementById('reportTypeLabel').textContent = type.replace(/_/g,' ').toUpperCase();
+      document.getElementById('reportContent').textContent = JSON.stringify(d.content, null, 2);
+    })
+    .catch(() => { document.getElementById('reportSpinner').classList.add('d-none'); });
+}
+
+function genPdf() {
+  if (!selectedCaseId) return;
+  const fd = new FormData();
+  fd.append('report_type', 'pdf');
+  fetch(`/reports/generate/${selectedCaseId}`, {method:'POST', body: fd})
+    .then(r => r.blob())
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `containiq-case-${selectedCaseId}.pdf`;
+      a.click();
+    });
+}
+
+function copyReport() {
+  navigator.clipboard.writeText(document.getElementById('reportContent').textContent);
+}
+</script>
+{% endblock %}

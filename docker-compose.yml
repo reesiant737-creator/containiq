@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+  containiq:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_URL=sqlite:////data/containiq.db
+      - THREAT_FEED_ENABLED=true
+      - THREAT_FEED_HOUR=6
+      - OTX_API_KEY=${OTX_API_KEY:-}
+      - VIRUSTOTAL_API_KEY=${VIRUSTOTAL_API_KEY:-}
+    volumes:
+      - containiq_data:/data
+    restart: unless-stopped
+
+volumes:
+  containiq_data:

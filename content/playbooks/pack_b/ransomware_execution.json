@@ -1,0 +1,101 @@
+{
+  "name": "Suspected Ransomware Execution",
+  "description": "Early containment of a suspected ransomware execution — network isolation, credential rotation, backup preservation, and evidence collection before encryption spreads.",
+  "pack": "pack_b",
+  "signals_required": ["mass_file_modification", "or", "ransom_note_detected", "or", "vssadmin_delete", "or", "suspicious_process_tree"],
+  "mitre_techniques": ["T1486", "T1490", "T1059", "T1027"],
+  "blast_radius_limits": {"max_affected": 5, "scope": "affected_hosts"},
+  "steps": [
+    {
+      "name": "Confirm ransomware indicators — do not reboot",
+      "description": "Verify the alert: look for ransom note, encrypted file extensions, vssadmin delete shadows, and suspicious process trees. DO NOT reboot — memory forensics may be possible.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would review EDR telemetry for file extension changes, shadow copy deletion, and process execution from temp/appdata paths.",
+      "verification": {"check": "ransomware_confirmed", "expected": "iocs_documented"},
+      "safety_constraints": ["do_not_reboot_affected_host", "do_not_run_antivirus_scan_yet"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Network isolate the affected host(s)",
+      "description": "Cut the host from the network immediately to stop lateral spread. Use EDR host isolation or VLAN quarantine. Maintain agent comms for response.",
+      "action_type": "api",
+      "requires_approval": true,
+      "approval_tier": "analyst",
+      "dry_run_preview": "Would trigger EDR network containment on affected host(s). Host loses network but EDR channel stays active.",
+      "verification": {"check": "host_network_isolated", "expected": "no_outbound_connections_except_edr"},
+      "safety_constraints": ["confirm_host_list_before_isolation", "critical_servers_require_approver_sign_off"],
+      "rollback": {"action": "release_edr_isolation", "params": {"host_ids": "captured_on_isolation"}},
+      "blast_radius": {"max_affected": 5, "scope": "host_network_access"}
+    },
+    {
+      "name": "Preserve memory and volatile data",
+      "description": "If tools are available, capture a memory image before any remediation. Also collect: running processes, network connections, and open file handles.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would run live response to pull process list, netstat, and initiate memory capture via EDR or WinPMEM.",
+      "verification": {"check": "volatile_data_captured", "expected": "memory_image_and_process_list"},
+      "safety_constraints": ["capture_before_any_remediation"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Verify backup integrity — DO NOT restore yet",
+      "description": "Check that backups for affected systems exist, are recent, and have not themselves been encrypted or deleted by the ransomware. Document backup age.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would check backup system for most recent clean backup timestamps. Verify backup storage is not accessible from affected host.",
+      "verification": {"check": "backups_intact", "expected": "backup_timestamp_pre_infection_documented"},
+      "safety_constraints": ["do_not_restore_to_same_network_segment", "verify_backup_not_also_encrypted"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Reset credentials for accounts active on affected host",
+      "description": "Rotate passwords and invalidate tokens for all accounts that had active sessions on the isolated host. Assume credentials harvested.",
+      "action_type": "manual",
+      "requires_approval": true,
+      "approval_tier": "approver",
+      "dry_run_preview": "Would identify accounts logged in during infection window and trigger forced password reset + session revocation for each.",
+      "verification": {"check": "credentials_rotated", "expected": "all_affected_accounts_reset"},
+      "safety_constraints": ["coordinate_with_hr_for_executive_accounts", "rotate_service_accounts_carefully"],
+      "rollback": {"action": "account_recovery_via_helpdesk", "note": "Users re-verify identity before new credentials issued."},
+      "blast_radius": {"max_affected": 20, "scope": "user_credentials"}
+    },
+    {
+      "name": "Hunt for lateral movement from patient zero",
+      "description": "Search SIEM/EDR for evidence of lateral movement: PsExec, WMI, SMB file copies, pass-the-hash from the initial infected host to other systems.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would run lateral movement hunt queries across SIEM for the 48h window before isolation.",
+      "verification": {"check": "lateral_movement_scope_determined", "expected": "all_affected_hosts_listed"},
+      "safety_constraints": [],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    },
+    {
+      "name": "Identify and preserve the ransomware binary",
+      "description": "Locate the ransomware executable, hash it (SHA-256), and submit to VirusTotal. Preserve for malware analysis. Do not delete yet.",
+      "action_type": "manual",
+      "requires_approval": false,
+      "dry_run_preview": "Would extract binary from EDR quarantine, compute SHA-256, and attach to case evidence.",
+      "verification": {"check": "sample_preserved", "expected": "sha256_attached_to_case"},
+      "safety_constraints": ["handle_in_isolated_analysis_environment"],
+      "rollback": null,
+      "blast_radius": {"max_affected": 0, "scope": "read_only"}
+    }
+  ],
+  "evidence_checklist": [
+    "Ransom note text and file path",
+    "First encrypted file timestamp and extension",
+    "Process execution tree (parent → child)",
+    "vssadmin / wbadmin command execution log",
+    "Memory image (if captured)",
+    "Ransomware binary SHA-256",
+    "VirusTotal report",
+    "Affected host list",
+    "Credential rotation confirmation",
+    "Backup integrity report"
+  ]
+}
