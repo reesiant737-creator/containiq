@@ -1,8 +1,9 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
 from ..models.case import Case, Entity, TimelineEvent, Evidence, SEVERITY, STATUS
 from ..services.audit_service import audit
+from ..services.ioc_enrichment import enrich_entities_async, ENRICHABLE_TYPES
 from ..app import db
 
 cases_bp = Blueprint("cases", __name__)
@@ -55,11 +56,15 @@ def create_case():
         db.session.flush()
 
         # Parse entities
+        new_entity_ids = []
         for line in request.form.get("entities", "").strip().splitlines():
             if ":" in line:
                 etype, val = line.split(":", 1)
                 e = Entity(case_id=case.id, entity_type=etype.strip(), value=val.strip())
                 db.session.add(e)
+                db.session.flush()
+                if e.entity_type in ENRICHABLE_TYPES:
+                    new_entity_ids.append(e.id)
 
         # First timeline event
         if request.form.get("initial_event"):
@@ -77,6 +82,9 @@ def create_case():
         audit("case.create", user_id=current_user.id, org_id=current_user.org_id,
               resource_type="case", resource_id=str(case.id), case_id=case.id,
               payload={"title": case.title, "severity": case.severity})
+
+        if new_entity_ids:
+            enrich_entities_async(new_entity_ids, current_app._get_current_object())
 
         flash(f"Case #{case.id} created.", "success")
         return redirect(url_for("cases.case_detail", case_id=case.id))

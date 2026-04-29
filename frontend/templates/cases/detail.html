@@ -135,11 +135,61 @@
         {% if case.entities %}
         <ul class="list-group list-group-flush">
           {% for e in case.entities %}
-          <li class="list-group-item ciq-list-item d-flex justify-content-between align-items-center">
-            <div>
-              <span class="badge bg-secondary me-2">{{ e.entity_type }}</span>
-              <code class="small">{{ e.value }}</code>
+          {% set ctx = e.context %}
+          {% set vt = ctx.get('virustotal', {}) %}
+          {% set abuse = ctx.get('abuseipdb', {}) %}
+          {% set malicious = vt.get('malicious', 0) %}
+          {% set score = abuse.get('abuse_confidence_score', 0) %}
+          <li class="list-group-item ciq-list-item">
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <span class="badge bg-secondary me-2">{{ e.entity_type }}</span>
+                <code class="small">{{ e.value }}</code>
+              </div>
+              <div class="d-flex gap-1 flex-wrap justify-content-end">
+                {% if ctx.get('enriched_at') %}
+                  {% if malicious >= 5 or score >= 75 %}
+                    <span class="badge bg-danger" title="High threat — {{ malicious }} VT detections, {{ score }}% abuse score">
+                      <i class="bi bi-exclamation-triangle-fill me-1"></i>High Risk
+                    </span>
+                  {% elif malicious >= 1 or score >= 25 %}
+                    <span class="badge bg-warning text-dark" title="{{ malicious }} VT detections, {{ score }}% abuse score">
+                      <i class="bi bi-exclamation-circle me-1"></i>Suspicious
+                    </span>
+                  {% else %}
+                    <span class="badge bg-success" title="Clean — 0 VT detections">
+                      <i class="bi bi-check-circle me-1"></i>Clean
+                    </span>
+                  {% endif %}
+                  {% if vt %}
+                    <span class="badge bg-dark border" title="VirusTotal: {{ malicious }} malicious / {{ vt.get('suspicious',0) }} suspicious">
+                      VT {{ malicious }}/{{ (malicious + vt.get('suspicious',0) + vt.get('harmless',0)) }}
+                    </span>
+                  {% endif %}
+                  {% if abuse and abuse.get('total_reports', 0) > 0 %}
+                    <span class="badge bg-danger" title="AbuseIPDB: {{ score }}% confidence, {{ abuse.get('total_reports',0) }} reports">
+                      Abuse {{ score }}%
+                    </span>
+                  {% endif %}
+                  {% if abuse.get('is_tor') %}
+                    <span class="badge bg-warning text-dark">TOR</span>
+                  {% endif %}
+                {% elif e.entity_type in ['ip','domain','hash'] %}
+                  <span class="badge bg-secondary text-muted" title="Enrichment pending or API key not set">
+                    <span class="spinner-border spinner-border-sm me-1" style="width:.6rem;height:.6rem"></span>Enriching…
+                  </span>
+                {% endif %}
+              </div>
             </div>
+            {% if vt.get('country') or vt.get('as_owner') or abuse.get('isp') %}
+            <div class="mt-1 ms-1">
+              <small class="text-muted">
+                {% if vt.get('country') %}<i class="bi bi-geo-alt me-1"></i>{{ vt.country }}{% endif %}
+                {% if vt.get('as_owner') %} · {{ vt.as_owner }}{% endif %}
+                {% if abuse.get('isp') %} · {{ abuse.isp }}{% endif %}
+              </small>
+            </div>
+            {% endif %}
           </li>
           {% endfor %}
         </ul>

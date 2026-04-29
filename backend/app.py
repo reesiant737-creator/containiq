@@ -44,6 +44,7 @@ def create_app(env=None):
     from .routes.threat_feed import threat_feed_bp
     from .routes.patches import patches_bp
     from .routes.ingest import ingest_bp
+    from .routes.metrics import metrics_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(cases_bp)
@@ -53,6 +54,7 @@ def create_app(env=None):
     app.register_blueprint(threat_feed_bp)
     app.register_blueprint(patches_bp)
     app.register_blueprint(ingest_bp)
+    app.register_blueprint(metrics_bp)
 
     # Start the daily threat intel scheduler
     if app.config.get("THREAT_FEED_ENABLED"):
@@ -62,6 +64,8 @@ def create_app(env=None):
     with app.app_context():
         db.create_all()
         _seed_defaults()
+        if os.environ.get("DEMO_MODE", "").lower() == "true":
+            _seed_demo_if_empty()
 
     # CLI commands
     @app.cli.command("seed-demo")
@@ -83,6 +87,17 @@ def create_app(env=None):
                 print(f"Org {org.id}: patch {patch.version} — {patch.status}")
 
     return app
+
+
+def _seed_demo_if_empty():
+    from .models.case import Case
+    if Case.query.count() == 0:
+        try:
+            from .services.demo_seeder import seed_demo_data
+            seed_demo_data()
+            print("[DEMO] Auto-seeded demo data on first boot.")
+        except Exception as e:
+            print(f"[DEMO] Auto-seed failed: {e}")
 
 
 def _seed_defaults():

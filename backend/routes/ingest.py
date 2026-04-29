@@ -10,12 +10,13 @@ Supported formats (auto-detected):
 
 Auth: API key via X-API-Key header or ?api_key= query param.
 """
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from datetime import datetime, timezone
 from ..models.case import Case, Entity, TimelineEvent, SEVERITY
 from ..models.user import User
 from ..services.audit_service import audit
 from ..services.notifier import Notifier
+from ..services.ioc_enrichment import enrich_entities_async, ENRICHABLE_TYPES
 from ..app import db
 import hashlib, hmac, os
 
@@ -247,13 +248,18 @@ def ingest_alert():
     db.session.flush()
 
     # Add entities
+    enrichable_ids = []
     for e in normalized["entities"]:
         if e.get("value"):
-            db.session.add(Entity(
+            ent = Entity(
                 case_id=case.id,
                 entity_type=e["type"],
                 value=str(e["value"])[:511],
-            ))
+            )
+            db.session.add(ent)
+            db.session.flush()
+            if ent.entity_type in ENRICHABLE_TYPES:
+                enrichable_ids.append(ent.id)
 
     # Add initial timeline event
     if normalized["initial_event"]:
@@ -267,6 +273,9 @@ def ingest_alert():
         ))
 
     db.session.commit()
+
+    if enrichable_ids:
+        enrich_entities_async(enrichable_ids, current_app._get_current_object())
 
     audit("case.ingested", org_id=org.id, user_id=user_id,
           resource_type="case", resource_id=str(case.id), case_id=case.id,
