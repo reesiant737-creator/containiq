@@ -90,6 +90,23 @@ Org-wide coverage report shows gaps and actionable improvement recommendations.
 - PDF export (ReportLab)
 - Immutable audit log — every action by every user, forever, append-only by design
 
+### IOC Auto-Enrichment
+Runs automatically in the background when entities are created — never blocks case ingestion:
+- **VirusTotal** — malicious/suspicious/harmless engine counts for IPs, domains, and file hashes
+- **AbuseIPDB** — abuse confidence score, total reports, ISP, country, TOR node detection
+- Color-coded threat badges on every entity: **High Risk** / **Suspicious** / **Clean**
+- Geo and ASN info displayed inline (country, AS owner, ISP)
+- Gracefully skips enrichment if API keys are not configured
+
+### MTTR & Metrics Dashboard
+Real-time response time analytics at `/metrics`:
+- Average, p50, and p95 MTTR across all closed cases
+- Breakdown by severity tier (Critical, High, Medium, Low)
+- 8-week MTTR trend chart
+- SLA benchmark comparison per severity
+- Stale open cases breaching the 24-hour SLA threshold
+- Fastest and slowest case resolutions
+
 ### Notifications
 - Slack webhook: fires on new Critical/High cases, approval requests, patch ready
 - Microsoft Teams webhook
@@ -118,7 +135,8 @@ containiq/
 │   │   ├── reports.py          # Report generation
 │   │   ├── ai.py               # AI chatbot + analysis
 │   │   ├── threat_feed.py      # Threat intel routes
-│   │   └── ingest.py           # Alert ingestion API
+│   │   ├── ingest.py           # Alert ingestion API
+│   │   └── metrics.py          # MTTR dashboard + API
 │   ├── services/
 │   │   ├── ai_analyst.py       # Claude API integration
 │   │   ├── threat_intel.py     # Feed pipeline + scheduler
@@ -127,6 +145,7 @@ containiq/
 │   │   ├── nist_mapper.py      # NIST CSF 2.0 mapping
 │   │   ├── report_generator.py # Incident reports + PDF export
 │   │   ├── notifier.py         # Slack + email notifications
+│   │   ├── ioc_enrichment.py   # VirusTotal + AbuseIPDB (background thread)
 │   │   └── demo_seeder.py      # Realistic demo data
 │   └── playbooks/              # Gold-standard playbook JSON
 │       ├── suspicious_inbox_rule.json
@@ -136,10 +155,13 @@ containiq/
 │       └── suspicious_admin_activity.json
 ├── frontend/
 │   └── templates/              # Bootstrap 5 dark theme
+├── docs/
+│   └── ContainIQ_Lab_Guide.pdf # 13-page customer onboarding guide
 ├── run.py                      # Entry point
 ├── requirements.txt
 ├── Dockerfile
-└── docker-compose.yml
+├── docker-compose.yml
+└── railway.toml                # Railway one-click deploy config
 ```
 
 **Tech Stack**
@@ -147,7 +169,7 @@ containiq/
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.10+, Flask 3.x, SQLAlchemy 2.x |
-| AI | Anthropic Claude API (claude-3-5-sonnet) with prompt caching |
+| AI | Anthropic Claude API (claude-sonnet-4-6) with prompt caching |
 | Database | SQLite (dev) / PostgreSQL (production) |
 | Scheduling | APScheduler (daily intel + weekly patches) |
 | Frontend | Bootstrap 5 dark theme, vanilla JavaScript |
@@ -236,6 +258,7 @@ Copy `.env.example` to `.env` and configure:
 | `BASE_URL` | No | Public URL for notification links |
 | `FLASK_ENV` | No | Set to `production` in prod |
 | `THREAT_FEED_ENABLED` | No | Enable daily scheduler (default: true) |
+| `DEMO_MODE` | No | Auto-seed demo data on first boot (set `true` for Railway/hosted demos) |
 
 ---
 
@@ -331,11 +354,14 @@ ContainIQ maps every incident to all six NIST CSF 2.0 functions and generates an
 
 ### Railway (Recommended — free tier available)
 
+This repo includes a `railway.toml` config — Railway detects it automatically.
+
 1. Push this repo to GitHub
 2. Go to [railway.app](https://railway.app) → New Project → Deploy from GitHub
 3. Select this repo
 4. Add environment variables in the Railway dashboard (copy from `.env.example`)
-5. Railway auto-detects the `Dockerfile` and deploys
+5. Set `DEMO_MODE=true` to auto-load demo data on first boot
+6. Railway builds and deploys — health check at `/api/v1/health`
 
 ### Render / Fly.io / Any Docker host
 
@@ -357,19 +383,30 @@ docker run -p 5001:5001 --env-file .env containiq
 
 - **MSSP operations** — Manage multiple client tenants with role-based access
 - **Startup security teams** — Enterprise-grade workflow without enterprise budget
-- **Security training** — Load demo data for realistic incident response exercises
-- **Compliance audit prep** — NIST CSF gap report ready for auditors
+- **Security training** — Load demo data + use the included 13-page lab guide for team onboarding
+- **Compliance audit prep** — NIST CSF 2.0 gap report ready for auditors, immutable audit trail for SOC 2
 - **SIEM integration** — One webhook call from Sentinel/Splunk/CrowdStrike creates a managed case
+- **SLA reporting** — MTTR dashboard gives management real data on response time performance
+
+---
+
+## Customer Onboarding
+
+A 13-page professional lab guide is included in `docs/ContainIQ_Lab_Guide.pdf` — three hands-on exercises covering the full SOC workflow:
+
+| Lab | Scenario | Skills |
+|---|---|---|
+| Lab 1 | Phishing / Inbox Forwarding | Alert ingestion, IOC enrichment |
+| Lab 2 | Ransomware Containment | AI analysis, playbook execution |
+| Lab 3 | Incident Closure | Reporting, NIST CSF, MTTR metrics |
 
 ---
 
 ## Roadmap
 
-- [ ] MTTR / metrics dashboard (mean time to respond, contain, close)
-- [ ] IOC auto-enrichment on entity creation (VirusTotal, AbuseIPDB)
 - [ ] Full-text case search
 - [ ] SSO / SAML (enterprise deployments)
-- [ ] SLA tracking (time-to-acknowledge by severity)
+- [ ] SLA breach alerting (time-to-acknowledge per severity)
 - [ ] Stripe billing (hosted SaaS tier)
 - [ ] Public landing page
 
