@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>ContainIQ — AI-Powered Security Operations Platform</title>
+  <meta name="description" content="Enterprise-grade SOC incident response for teams who can't afford CrowdStrike or Cortex XSOAR. Open source. AI-native. Audit-ready."/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"/>
+  <style>
+    :root {
+      --ciq-bg:        #0d1117;
+      --ciq-surface:   #161b22;
+      --ciq-surface-2: #1c2333;
+      --ciq-border:    #30363d;
+      --ciq-text:      #e6edf3;
+      --ciq-muted:     #7d8590;
+      --ciq-primary:   #0d6efd;
+      --ciq-success:   #198754;
+      --ciq-warning:   #ffc107;
+      --ciq-danger:    #dc3545;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--ciq-bg);
+      color: var(--ciq-text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      margin: 0;
+    }
+
+    /* ── Nav ── */
+    .lp-nav {
+      background: rgba(13,17,23,0.92);
+      border-bottom: 1px solid var(--ciq-border);
+      backdrop-filter: blur(10px);
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    .lp-nav .navbar-brand {
+      font-weight: 700;
+      font-size: 1.15rem;
+      letter-spacing: -0.5px;
+      color: var(--ciq-text) !important;
+    }
+    .lp-nav .nav-link {
+      color: var(--ciq-muted) !important;
+      font-size: 0.9rem;
+      transition: color 0.15s;
+    }
+    .lp-nav .nav-link:hover { color: var(--ciq-text) !important; }
+
+    /* ── Hero ── */
+    .hero {
+      padding: 6rem 1.5rem 5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 500px;
+      background: radial-gradient(ellipse at center, rgba(13,110,253,0.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: rgba(13,110,253,0.12);
+      border: 1px solid rgba(13,110,253,0.3);
+      border-radius: 99px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.8rem;
+      color: #6ea8fe;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      line-height: 1.15;
+      margin-bottom: 1.25rem;
+    }
+    .hero h1 .accent { color: var(--ciq-primary); }
+    .hero .lead {
+      font-size: 1.15rem;
+      color: var(--ciq-muted);
+      max-width: 580px;
+      margin: 0 auto 2rem;
+      line-height: 1.65;
+    }
+    .hero-cta { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
+
+    /* ── Stats bar ── */
+    .stats-bar {
+      background: var(--ciq-surface);
+      border-top: 1px solid var(--ciq-border);
+      border-bottom: 1px solid var(--ciq-border);
+      padding: 1.5rem 1rem;
+    }
+    .stat-item { text-align: center; }
+    .stat-number {
+      font-size: 1.75rem;
+      font-weight: 800;
+      color: var(--ciq-primary);
+      line-height: 1;
+    }
+    .stat-label { font-size: 0.78rem; color: var(--ciq-muted); margin-top: 0.25rem; }
+
+    /* ── Sections ── */
+    section { padding: 5rem 1.5rem; }
+    section.alt { background: var(--ciq-surface); }
+    .section-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--ciq-primary);
+      margin-bottom: 0.75rem;
+    }
+    .section-title {
+      font-size: clamp(1.5rem, 3vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.75px;
+      margin-bottom: 0.75rem;
+    }
+    .section-sub {
+      color: var(--ciq-muted);
+      font-size: 1rem;
+      max-width: 540px;
+      line-height: 1.65;
+    }
+
+    /* ── Feature cards ── */
+    .feature-card {
+      background: var(--ciq-surface);
+      border: 1px solid var(--ciq-border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      height: 100%;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .feature-card:hover {
+      border-color: var(--ciq-primary);
+      transform: translateY(-3px);
+    }
+    .feature-icon {
+      width: 42px; height: 42px;
+      background: rgba(13,110,253,0.12);
+      border: 1px solid rgba(13,110,253,0.25);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem;
+      color: #6ea8fe;
+      margin-bottom: 1rem;
+    }
+    .feature-card h5 { font-weight: 700; font-size: 1rem; margin-bottom: 0.5rem; }
+    .feature-card p { font-size: 0.875rem; color: var(--ciq-muted); margin: 0; line-height: 1.6; }
+
+    /* ── How it works ── */
+    .step-num {
+      width: 36px; height: 36px;
+      background: var(--ciq-primary);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.85rem;
+      flex-shrink: 0;
+    }
+    .step-connector {
+      width: 2px;
+      background: var(--ciq-border);
+      margin: 0.25rem auto;
+      height: 32px;
+    }
+
+    /* ── Pricing ── */
+    .pricing-card {
+      background: var(--ciq-surface);
+      border: 1px solid var(--ciq-border);
+      border-radius: 12px;
+      padding: 2rem;
+    }
+    .pricing-card.featured {
+      border-color: var(--ciq-primary);
+      position: relative;
+    }
+    .featured-badge {
+      position: absolute;
+      top: -12px; left: 50%;
+      transform: translateX(-50%);
+      background: var(--ciq-primary);
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      padding: 0.2rem 0.75rem;
+      border-radius: 99px;
+      white-space: nowrap;
+    }
+    .price { font-size: 2.5rem; font-weight: 800; line-height: 1; }
+    .price-sub { font-size: 0.85rem; color: var(--ciq-muted); }
+    .pricing-features li {
+      font-size: 0.875rem;
+      padding: 0.35rem 0;
+      border-bottom: 1px solid var(--ciq-border);
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .pricing-features li:last-child { border-bottom: none; }
+
+    /* ── Siem logos strip ── */
+    .integrations-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: center;
+      align-items: center;
+    }
+    .integration-pill {
+      background: var(--ciq-surface-2);
+      border: 1px solid var(--ciq-border);
+      border-radius: 6px;
+      padding: 0.4rem 0.85rem;
+      font-size: 0.8rem;
+      color: var(--ciq-muted);
+      display: flex; align-items: center; gap: 0.4rem;
+    }
+
+    /* ── Terminal code block ── */
+    .code-block {
+      background: #010409;
+      border: 1px solid var(--ciq-border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      color: #e6edf3;
+    }
+    .code-block .c-comment { color: var(--ciq-muted); }
+    .code-block .c-cmd     { color: #79c0ff; }
+    .code-block .c-arg     { color: #a5d6ff; }
+    .code-block .c-out     { color: #56d364; }
+    .code-block .c-url     { color: var(--ciq-warning); }
+
+    /* ── CTA banner ── */
+    .cta-banner {
+      background: linear-gradient(135deg, rgba(13,110,253,0.15) 0%, rgba(13,17,23,0) 60%);
+      border: 1px solid rgba(13,110,253,0.25);
+      border-radius: 14px;
+      padding: 3.5rem 2rem;
+      text-align: center;
+    }
+
+    /* ── Footer ── */
+    footer {
+      background: var(--ciq-surface);
+      border-top: 1px solid var(--ciq-border);
+      padding: 2.5rem 1.5rem;
+    }
+    footer .footer-brand { font-weight: 700; font-size: 1rem; }
+    footer a { color: var(--ciq-muted); text-decoration: none; font-size: 0.85rem; }
+    footer a:hover { color: var(--ciq-text); }
+
+    /* ── Utilities ── */
+    .text-muted-lp { color: var(--ciq-muted) !important; }
+    .divider { border-color: var(--ciq-border) !important; margin: 0; }
+    .btn-ciq-primary {
+      background: var(--ciq-primary);
+      color: #fff;
+      border: none;
+      padding: 0.65rem 1.5rem;
+      border-radius: 7px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: opacity 0.15s;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .btn-ciq-primary:hover { opacity: 0.88; color: #fff; }
+    .btn-ciq-outline {
+      background: transparent;
+      color: var(--ciq-text);
+      border: 1px solid var(--ciq-border);
+      padding: 0.65rem 1.5rem;
+      border-radius: 7px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: border-color 0.15s, color 0.15s;
+      text-decoration: none;
+      display: inline-flex; align-items: center; gap: 0.4rem;
+    }
+    .btn-ciq-outline:hover { border-color: var(--ciq-primary); color: var(--ciq-primary); }
+
+    @media (max-width: 576px) {
+      .hero { padding: 4rem 1rem 3rem; }
+      section { padding: 3rem 1rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Navbar ── -->
+<nav class="lp-nav navbar navbar-expand-lg py-2 px-4">
+  <div class="container-xl">
+    <a class="navbar-brand" href="#">
+      <i class="bi bi-shield-lock-fill me-1 text-primary"></i>ContainIQ
+    </a>
+    <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#lpNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="lpNav">
+      <ul class="navbar-nav me-auto ms-4 gap-1">
+        <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+        <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
+        <li class="nav-item"><a class="nav-link" href="#pricing">Pricing</a></li>
+        <li class="nav-item"><a class="nav-link" href="#integrations">Integrations</a></li>
+      </ul>
+      <div class="d-flex align-items-center gap-2 mt-2 mt-lg-0">
+        <a href="https://github.com/reesiant737-creator/containiq" class="btn-ciq-outline py-2 px-3" target="_blank">
+          <i class="bi bi-github"></i> GitHub
+        </a>
+        <a href="{{ url_for('auth.login') }}" class="btn-ciq-primary py-2 px-3">
+          Sign In <i class="bi bi-arrow-right"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- ── Hero ── -->
+<section class="hero">
+  <div class="container-xl">
+    <div class="hero-badge">
+      <i class="bi bi-stars"></i> AI-Native Security Operations
+    </div>
+    <h1>
+      Enterprise SOC workflow.<br/>
+      <span class="accent">Without the enterprise price tag.</span>
+    </h1>
+    <p class="lead">
+      ContainIQ is an open-source AI-powered incident response platform that replaces $50K+/yr tools like CrowdStrike Falcon Complete and Cortex XSOAR. Full case management, governed playbooks, daily threat intel, and NIST CSF 2.0 compliance — all in one place.
+    </p>
+    <div class="hero-cta">
+      <a href="{{ url_for('auth.login') }}" class="btn-ciq-primary" style="font-size:1rem; padding: 0.75rem 1.75rem;">
+        <i class="bi bi-play-fill"></i> Try Live Demo
+      </a>
+      <a href="https://github.com/reesiant737-creator/containiq" class="btn-ciq-outline" style="font-size:1rem; padding: 0.75rem 1.75rem;" target="_blank">
+        <i class="bi bi-github"></i> View on GitHub
+      </a>
+    </div>
+    <p class="mt-3" style="font-size:0.8rem; color: var(--ciq-muted);">
+      Demo login: admin@containiq.local / changeme &nbsp;·&nbsp; MIT License &nbsp;·&nbsp; Free forever
+    </p>
+  </div>
+</section>
+
+<!-- ── Stats bar ── -->
+<div class="stats-bar">
+  <div class="container-xl">
+    <div class="row g-3 justify-content-center">
+      <div class="col-6 col-sm-4 col-md-2 stat-item">
+        <div class="stat-number">5</div>
+        <div class="stat-label">Response Playbooks</div>
+      </div>
+      <div class="col-6 col-sm-4 col-md-2 stat-item">
+        <div class="stat-number">6</div>
+        <div class="stat-label">NIST CSF Functions</div>
+      </div>
+      <div class="col-6 col-sm-4 col-md-2 stat-item">
+        <div class="stat-number">3</div>
+        <div class="stat-label">Threat Intel Feeds</div>
+      </div>
+      <div class="col-6 col-sm-4 col-md-2 stat-item">
+        <div class="stat-number">5+</div>
+        <div class="stat-label">SIEM Integrations</div>
+      </div>
+      <div class="col-6 col-sm-4 col-md-2 stat-item">
+        <div class="stat-number">$0</div>
+        <div class="stat-label">Cost to Self-Host</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Features ── -->
+<section id="features">
+  <div class="container-xl">
+    <div class="text-center mb-5">
+      <div class="section-label">Everything your SOC needs</div>
+      <h2 class="section-title">Full-stack incident response,<br/>out of the box.</h2>
+      <p class="section-sub mx-auto">Every module ships ready to use. No professional services, no 6-month implementation, no hidden costs.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-folder2-open"></i></div>
+          <h5>Case Management</h5>
+          <p>Full incident lifecycle from alert to closure. Entity tracking, chronological timeline, evidence locker, severity classification, and role-based access for Admin, Analyst, Approver, and Viewer roles.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-cpu"></i></div>
+          <h5>AI Analyst (Claude API)</h5>
+          <p>Automatic MITRE ATT&CK mapping, hunt queries in SPL/KQL/EQL, severity rationale, playbook recommendation, and a conversational chatbot — all from the case context. Prompt caching keeps costs low.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-journal-code"></i></div>
+          <h5>Governed Playbook Engine</h5>
+          <p>Dry-run preview → approval gates → live execution → rollback → verification. Blast-radius limits cap what a playbook can touch. Safety constraints enforced at the engine level — impossible to skip.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-broadcast"></i></div>
+          <h5>Daily Threat Intelligence</h5>
+          <p>Automated pipeline pulls CISA KEV, URLhaus, and AlienVault OTX every morning at 06:00 UTC. Claude synthesizes them into plain-English briefings and proposes new detections and playbook updates.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-patch-check"></i></div>
+          <h5>Weekly Security Patches</h5>
+          <p>Risk-tiered patch bundles auto-generated every Sunday. Low-risk changes auto-apply; medium and high require analyst or approver sign-off. Full rollback manifest generated before any change lands.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-diagram-3"></i></div>
+          <h5>NIST CSF 2.0 Compliance</h5>
+          <p>Every case is mapped across all six NIST CSF 2.0 functions: Govern, Identify, Protect, Detect, Respond, Recover. Org-wide gap report with specific, actionable improvement recommendations.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-graph-up"></i></div>
+          <h5>MTTR & Metrics Dashboard</h5>
+          <p>Average, p50, and p95 MTTR by severity. 8-week trend chart. SLA benchmark comparison. Stale cases breaching the 24-hour threshold. Management-ready reporting without exporting to a spreadsheet.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-shield-exclamation"></i></div>
+          <h5>IOC Auto-Enrichment</h5>
+          <p>VirusTotal and AbuseIPDB lookups run in the background the moment an entity is created — never blocks case ingestion. Color-coded threat badges, geo info, and ASN data displayed inline on every entity.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card">
+          <div class="feature-icon"><i class="bi bi-lock"></i></div>
+          <h5>Immutable Audit Log</h5>
+          <p>Every action by every user is logged forever, append-only by design. Exportable audit packet per incident. SOC 2 and compliance-auditor ready out of the box — no configuration required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── How it works ── -->
+<section id="how-it-works" class="alt">
+  <div class="container-xl">
+    <div class="row align-items-center g-5">
+      <div class="col-lg-5">
+        <div class="section-label">Simple by design</div>
+        <h2 class="section-title">From alert to closed case<br/>in minutes.</h2>
+        <p class="section-sub">ContainIQ guides your team through every step of the NIST incident response lifecycle — automatically, with AI support at every decision point.</p>
+
+        <div class="mt-4 d-flex flex-column gap-0">
+          <div class="d-flex align-items-start gap-3">
+            <div class="step-num">1</div>
+            <div class="pt-1">
+              <div class="fw-700" style="font-weight:700; font-size:0.95rem;">Alert arrives</div>
+              <div class="text-muted-lp" style="font-size:0.85rem; line-height:1.55;">Sentinel, Splunk, CrowdStrike, or Elastic webhook hits the ingest API. Auto-deduplicated and converted to a managed case.</div>
+            </div>
+          </div>
+          <div class="d-flex"><div class="step-connector ms-4"></div></div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="step-num">2</div>
+            <div class="pt-1">
+              <div class="fw-700" style="font-weight:700; font-size:0.95rem;">AI analyzes</div>
+              <div class="text-muted-lp" style="font-size:0.85rem; line-height:1.55;">Claude maps TTPs to MITRE ATT&CK, explains severity, and recommends the right playbook — before an analyst even opens the case.</div>
+            </div>
+          </div>
+          <div class="d-flex"><div class="step-connector ms-4"></div></div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="step-num">3</div>
+            <div class="pt-1">
+              <div class="fw-700" style="font-weight:700; font-size:0.95rem;">Playbook executes</div>
+              <div class="text-muted-lp" style="font-size:0.85rem; line-height:1.55;">Dry-run preview shows exactly what will happen. Approval gates require sign-off on high-impact steps. Blast-radius limits prevent accidental scope creep.</div>
+            </div>
+          </div>
+          <div class="d-flex"><div class="step-connector ms-4"></div></div>
+          <div class="d-flex align-items-start gap-3">
+            <div class="step-num">4</div>
+            <div class="pt-1">
+              <div class="fw-700" style="font-weight:700; font-size:0.95rem;">Case closes with audit trail</div>
+              <div class="text-muted-lp" style="font-size:0.85rem; line-height:1.55;">Incident report, NIST CSF audit packet, and MTTR metrics update automatically. Auditors get the full picture with one click.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <div class="code-block">
+          <div class="c-comment"># Clone and run in under 5 minutes</div>
+          <br/>
+          <span class="c-cmd">git clone</span> <span class="c-arg">https://github.com/reesiant737-creator/containiq.git</span><br/>
+          <span class="c-cmd">cd</span> <span class="c-arg">containiq</span><br/>
+          <span class="c-cmd">cp</span> <span class="c-arg">.env.example .env</span><br/>
+          <span class="c-comment"># Add your ANTHROPIC_API_KEY to .env</span><br/>
+          <span class="c-cmd">pip install</span> <span class="c-arg">-r requirements.txt</span><br/>
+          <span class="c-cmd">python</span> <span class="c-arg">run.py</span><br/>
+          <br/>
+          <span class="c-out">✓ ContainIQ running at http://localhost:5001</span><br/>
+          <br/>
+          <div class="c-comment"># Load realistic demo data</div>
+          <span class="c-cmd">flask</span> <span class="c-arg">seed-demo</span><br/>
+          <br/>
+          <span class="c-out">✓ 5 cases seeded (BEC, ransomware, OAuth abuse, ...)</span><br/>
+          <span class="c-out">✓ 2 playbook runs (1 completed, 1 pending approval)</span><br/>
+          <span class="c-out">✓ 3 weeks of threat intel history</span><br/>
+          <span class="c-out">✓ Full audit trail ready</span><br/>
+          <br/>
+          <div class="c-comment"># Or one-click Docker deploy</div>
+          <span class="c-cmd">docker-compose up -d</span><br/>
+          <br/>
+          <span class="c-out">✓ Production-ready. Persistent SQLite (or swap DATABASE_URL for Postgres)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Integrations ── -->
+<section id="integrations">
+  <div class="container-xl text-center">
+    <div class="section-label">Works with your stack</div>
+    <h2 class="section-title">One endpoint. Every SIEM.</h2>
+    <p class="section-sub mx-auto mb-4">Point any webhook at <code style="color:#a5d6ff; background: #010409; padding: 0.15rem 0.4rem; border-radius:4px;">POST /api/v1/alerts</code> and ContainIQ handles the rest — format auto-detected, case auto-created.</p>
+    <div class="integrations-strip">
+      <div class="integration-pill"><i class="bi bi-microsoft text-primary"></i> Microsoft Sentinel</div>
+      <div class="integration-pill"><i class="bi bi-bar-chart-fill" style="color:#f28e1c;"></i> Splunk</div>
+      <div class="integration-pill"><i class="bi bi-shield-fill-check" style="color:#e2242b;"></i> CrowdStrike Falcon</div>
+      <div class="integration-pill"><i class="bi bi-search" style="color:#00bfb3;"></i> Elastic Security</div>
+      <div class="integration-pill"><i class="bi bi-rss-fill text-warning"></i> AlienVault OTX</div>
+      <div class="integration-pill"><i class="bi bi-patch-exclamation-fill text-danger"></i> CISA KEV</div>
+      <div class="integration-pill"><i class="bi bi-virus2 text-success"></i> VirusTotal</div>
+      <div class="integration-pill"><i class="bi bi-exclamation-triangle-fill text-warning"></i> AbuseIPDB</div>
+      <div class="integration-pill"><i class="bi bi-slack text-success"></i> Slack</div>
+      <div class="integration-pill"><i class="bi bi-microsoft text-primary"></i> Microsoft Teams</div>
+      <div class="integration-pill"><i class="bi bi-envelope-fill text-muted"></i> SMTP Email</div>
+      <div class="integration-pill"><i class="bi bi-braces text-muted"></i> Generic JSON</div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Playbooks ── -->
+<section class="alt">
+  <div class="container-xl">
+    <div class="text-center mb-5">
+      <div class="section-label">Gold-standard response</div>
+      <h2 class="section-title">5 production playbooks. Day one.</h2>
+      <p class="section-sub mx-auto">Every playbook was written to real DFIR standards — not generic checklists. Dry-run preview, approval gates, blast-radius caps, and full rollback built in.</p>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(220,53,69,0.15); color:#f1aeb5; border:1px solid rgba(220,53,69,0.3); font-size:0.7rem;">Pack A · BEC</span>
+          </div>
+          <h5>Suspicious Inbox Forwarding</h5>
+          <p>Detects and remediates mailbox rules silently forwarding mail to external addresses — the #1 BEC indicator. Sessions revoked, rule disabled, evidence preserved.</p>
+          <div class="mt-2" style="font-size:0.75rem; color: var(--ciq-muted);">MITRE T1564.008</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(220,53,69,0.15); color:#f1aeb5; border:1px solid rgba(220,53,69,0.3); font-size:0.7rem;">Pack A · BEC</span>
+          </div>
+          <h5>OAuth Consent Abuse</h5>
+          <p>Revokes malicious OAuth app grants, inventories all consented apps, and blocks future consent for unapproved applications. Covers pass-the-token and consent phishing.</p>
+          <div class="mt-2" style="font-size:0.75rem; color: var(--ciq-muted);">MITRE T1550.001</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(255,193,7,0.12); color:#ffda6a; border:1px solid rgba(255,193,7,0.3); font-size:0.7rem;">Pack B · Ransomware</span>
+          </div>
+          <h5>Ransomware Execution</h5>
+          <p>Network isolation, memory capture, shadow copy preservation, backup integrity check, and credential rotation — in the right order, with the right approvals at every step.</p>
+          <div class="mt-2" style="font-size:0.75rem; color: var(--ciq-muted);">MITRE T1486 · T1490</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(255,193,7,0.12); color:#ffda6a; border:1px solid rgba(255,193,7,0.3); font-size:0.7rem;">Pack B · Ransomware</span>
+          </div>
+          <h5>Lateral Movement</h5>
+          <p>Cuts off credential hopping via SMB/RDP, forces re-authentication on pivot hosts, and revokes service account tokens across affected segments without taking down production.</p>
+          <div class="mt-2" style="font-size:0.75rem; color: var(--ciq-muted);">MITRE T1021</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span class="badge" style="background:rgba(13,202,240,0.12); color:#6edff6; border:1px solid rgba(13,202,240,0.3); font-size:0.7rem;">Pack C · Insider</span>
+          </div>
+          <h5>Suspicious Admin Activity</h5>
+          <p>Handles valid-account abuse: off-hours logins, privilege escalation, data staging. Preserves evidence before any access revocation so the audit trail stays intact.</p>
+          <div class="mt-2" style="font-size:0.75rem; color: var(--ciq-muted);">MITRE T1078</div>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-4">
+        <div class="feature-card h-100 d-flex flex-column justify-content-center align-items-center text-center" style="border-style:dashed;">
+          <i class="bi bi-plus-circle" style="font-size:2rem; color: var(--ciq-muted);"></i>
+          <h5 class="mt-2 mb-1">Build your own</h5>
+          <p>Playbooks are plain JSON. Write a step, add an approval gate, set a blast radius, and deploy. No proprietary scripting language to learn.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Pricing ── -->
+<section id="pricing">
+  <div class="container-xl">
+    <div class="text-center mb-5">
+      <div class="section-label">Simple, transparent pricing</div>
+      <h2 class="section-title">Start free. Scale when you're ready.</h2>
+      <p class="section-sub mx-auto">ContainIQ is MIT-licensed and fully open source. Self-host for free forever. A hosted managed tier is coming for teams who want zero ops overhead.</p>
+    </div>
+
+    <div class="row g-4 justify-content-center">
+      <div class="col-md-6 col-lg-5">
+        <div class="pricing-card">
+          <div class="mb-3">
+            <span class="badge bg-secondary" style="font-size:0.75rem;">Open Source</span>
+          </div>
+          <div class="price">$0</div>
+          <div class="price-sub mt-1 mb-4">Free. Self-hosted. MIT license.</div>
+          <ul class="list-unstyled pricing-features mb-4">
+            <li><i class="bi bi-check-circle-fill text-success"></i> Full feature set — nothing held back</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Unlimited cases, users, orgs</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Docker one-command deploy</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> SQLite dev / PostgreSQL production</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 5 production playbooks included</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> MIT license — commercial use OK</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 13-page lab guide included</li>
+          </ul>
+          <a href="https://github.com/reesiant737-creator/containiq" class="btn-ciq-outline w-100 justify-content-center" target="_blank">
+            <i class="bi bi-github"></i> Get the Code
+          </a>
+        </div>
+      </div>
+
+      <div class="col-md-6 col-lg-5">
+        <div class="pricing-card featured">
+          <div class="featured-badge">Coming Soon</div>
+          <div class="mb-3">
+            <span class="badge bg-primary" style="font-size:0.75rem;">Hosted / Managed</span>
+          </div>
+          <div class="price">TBD</div>
+          <div class="price-sub mt-1 mb-4">Per org per month. No infra to manage.</div>
+          <ul class="list-unstyled pricing-features mb-4">
+            <li><i class="bi bi-check-circle-fill text-success"></i> Everything in Open Source</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Managed hosting on Railway/Render</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Automated backups</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> SSO / SAML for enterprise</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Priority email support</li>
+            <li><i class="bi bi-clock text-muted"></i> SLA breach alerting</li>
+            <li><i class="bi bi-clock text-muted"></i> Stripe billing integration</li>
+          </ul>
+          <button class="btn-ciq-primary w-100 justify-content-center" disabled style="opacity:0.6; cursor:not-allowed;">
+            <i class="bi bi-bell"></i> Notify Me on Launch
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center mt-4" style="font-size:0.82rem; color: var(--ciq-muted);">
+      MSSPs and large teams — reach out on GitHub Discussions for volume pricing discussions.
+    </p>
+  </div>
+</section>
+
+<!-- ── Use cases ── -->
+<section class="alt">
+  <div class="container-xl">
+    <div class="text-center mb-5">
+      <div class="section-label">Who uses ContainIQ</div>
+      <h2 class="section-title">Built for lean security teams.</h2>
+    </div>
+    <div class="row g-4">
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <i class="bi bi-building-gear" style="font-size:2rem; color: var(--ciq-primary);"></i>
+          <h5 class="mt-3">MSSPs</h5>
+          <p>Multi-tenant org model. Manage client incidents in isolated workspaces with full audit trails per tenant.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <i class="bi bi-rocket-takeoff" style="font-size:2rem; color: var(--ciq-primary);"></i>
+          <h5 class="mt-3">Startup Security Teams</h5>
+          <p>Enterprise-grade workflow on a startup budget. Deploy in an afternoon and handle production incidents on day one.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <i class="bi bi-mortarboard" style="font-size:2rem; color: var(--ciq-primary);"></i>
+          <h5 class="mt-3">Security Training</h5>
+          <p>Realistic demo data plus a 13-page lab guide. Three hands-on exercises covering phishing, ransomware, and NIST compliance.</p>
+        </div>
+      </div>
+      <div class="col-md-6 col-lg-3">
+        <div class="feature-card text-center">
+          <i class="bi bi-clipboard2-check" style="font-size:2rem; color: var(--ciq-primary);"></i>
+          <h5 class="mt-3">Compliance Audit Prep</h5>
+          <p>NIST CSF 2.0 gap report and immutable audit trail ready for SOC 2 and external auditors — no spreadsheet wrangling required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ── -->
+<section>
+  <div class="container-xl">
+    <div class="cta-banner">
+      <div class="section-label">Ready to ship?</div>
+      <h2 class="section-title">Your SOC deserves better tools.</h2>
+      <p class="section-sub mx-auto mb-4">Clone the repo, run the demo seeder, and you'll have a fully-populated SOC platform running in under 10 minutes.</p>
+      <div class="d-flex gap-3 justify-content-center flex-wrap">
+        <a href="{{ url_for('auth.login') }}" class="btn-ciq-primary" style="font-size:1rem; padding:0.75rem 2rem;">
+          <i class="bi bi-play-fill"></i> Try Live Demo
+        </a>
+        <a href="https://github.com/reesiant737-creator/containiq" class="btn-ciq-outline" style="font-size:1rem; padding:0.75rem 2rem;" target="_blank">
+          <i class="bi bi-github"></i> Star on GitHub
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Footer ── -->
+<footer>
+  <div class="container-xl">
+    <div class="row align-items-center g-3">
+      <div class="col-md-4">
+        <div class="footer-brand">
+          <i class="bi bi-shield-lock-fill me-1 text-primary"></i>ContainIQ
+        </div>
+        <div style="font-size:0.8rem; color: var(--ciq-muted); margin-top:0.25rem;">
+          AI-Powered Security Operations Platform
+        </div>
+      </div>
+      <div class="col-md-4 text-md-center">
+        <div class="d-flex justify-content-center gap-4 flex-wrap">
+          <a href="#features">Features</a>
+          <a href="#pricing">Pricing</a>
+          <a href="{{ url_for('auth.login') }}">Login</a>
+          <a href="https://github.com/reesiant737-creator/containiq" target="_blank">GitHub</a>
+        </div>
+      </div>
+      <div class="col-md-4 text-md-end">
+        <div style="font-size:0.8rem; color: var(--ciq-muted);">
+          MIT License &nbsp;·&nbsp; © 2025 ContainIQ<br/>
+          Built by a security practitioner.
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

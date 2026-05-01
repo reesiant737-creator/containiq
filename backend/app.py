@@ -36,6 +36,7 @@ def create_app(env=None):
         return User.query.get(int(user_id))
 
     # Register blueprints
+    from .routes.landing import landing_bp
     from .routes.auth import auth_bp
     from .routes.cases import cases_bp
     from .routes.playbooks import playbooks_bp
@@ -46,6 +47,7 @@ def create_app(env=None):
     from .routes.ingest import ingest_bp
     from .routes.metrics import metrics_bp
 
+    app.register_blueprint(landing_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(cases_bp)
     app.register_blueprint(playbooks_bp)
