@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: threatcommand
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn run:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: INGEST_API_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: threatcommand-db
+          property: connectionString
+
+databases:
+  - name: threatcommand-db
+    databaseName: threatcommand
+    user: threatcommand

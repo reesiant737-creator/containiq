@@ -30,9 +30,9 @@ def _resolve_api_key():
     return key.strip()
 
 def _get_org_by_key(api_key: str):
-    """Resolve org from API key. For MVP: any key matching env var maps to default org."""
+    """Resolve org from API key. For MVP: any key matching config maps to default org."""
     from ..models.org import Org
-    configured = os.environ.get("INGEST_API_KEY", "")
+    configured = current_app.config.get("INGEST_API_KEY", "")
     if not configured or not api_key:
         return None
     if not hmac.compare_digest(api_key, configured):
@@ -320,4 +320,4 @@ def test_ingest():
 
 @ingest_bp.route("/health", methods=["GET"])
 def health():
-    return jsonify({"status": "ok", "service": "ContainIQ", "version": "1.0.0"})
+    return jsonify({"status": "ok", "service": "ThreatCommand", "version": "1.0.0"})

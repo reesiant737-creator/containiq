@@ -136,7 +136,7 @@ def _seed_defaults():
 
         admin = User(
             org_id=org.id,
-            email="admin@containiq.local",
+            email="admin@threatcommand.local",
             role="admin",
             display_name="Admin",
         )

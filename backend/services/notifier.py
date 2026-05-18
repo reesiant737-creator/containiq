@@ -42,7 +42,7 @@ class Notifier:
         body  = (f"*Severity:* {case.severity}\n"
                  f"*Source:* {case.source or 'manual'}\n"
                  f"*Status:* {case.status}\n"
-                 f"<{self.base_url}/cases/{case.id}|Open in ContainIQ>")
+                 f"<{self.base_url}/cases/{case.id}|Open in ThreatCommand>")
         self._send_slack(title, body, color=self._sev_color(case.severity))
         self._send_email(title, f"{title}\n\n{body}\n\n{self.base_url}/cases/{case.id}")
 
@@ -84,7 +84,7 @@ class Notifier:
                 "color": color,
                 "title": title,
                 "text": body,
-                "footer": "ContainIQ",
+                "footer": "ThreatCommand",
                 "ts": int(datetime.now(timezone.utc).timestamp()),
             }]
         }
@@ -116,7 +116,7 @@ class Notifier:
             return
         try:
             msg = MIMEMultipart("alternative")
-            msg["Subject"] = f"[ContainIQ] {subject}"
+            msg["Subject"] = f"[ThreatCommand] {subject}"
             msg["From"]    = self.smtp_user
             msg["To"]      = self.notify_email
             msg.attach(MIMEText(body, "plain"))

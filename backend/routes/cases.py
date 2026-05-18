@@ -9,7 +9,7 @@ from ..app import db
 cases_bp = Blueprint("cases", __name__)
 
 
-@cases_bp.route("/")
+@cases_bp.route("/dashboard")
 @login_required
 def dashboard():
     open_cases = Case.query.filter_by(org_id=current_user.org_id).filter(

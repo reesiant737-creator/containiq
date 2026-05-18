@@ -1,6 +1,6 @@
 <div align="center">
 
-# ContainIQ
+# ThreatCommand
 
 ### AI-Powered Security Operations Platform
 
@@ -18,11 +18,11 @@
 
 ---
 
-## What is ContainIQ?
+## What is ThreatCommand?
 
-ContainIQ is a full-stack AI-powered Security Operations and Incident Response platform built for SOC teams who need enterprise-grade tooling without enterprise-grade pricing. It replaces manual triage, scattered spreadsheet tracking, and ad-hoc runbooks with a governed, auditable, AI-assisted workflow — from first alert to closed case to compliance report.
+ThreatCommand is a full-stack AI-powered Security Operations and Incident Response platform built for SOC teams who need enterprise-grade tooling without enterprise-grade pricing. It replaces manual triage, scattered spreadsheet tracking, and ad-hoc runbooks with a governed, auditable, AI-assisted workflow — from first alert to closed case to compliance report.
 
-**The problem it solves:** Small and mid-market security teams face the same threats as Fortune 500s but can't afford $50K+/yr tools like CrowdStrike Falcon Complete or Cortex XSOAR. ContainIQ brings those capabilities to organizations of any size.
+**The problem it solves:** Small and mid-market security teams face the same threats as Fortune 500s but can't afford $50K+/yr tools like CrowdStrike Falcon Complete or Cortex XSOAR. ThreatCommand brings those capabilities to organizations of any size.
 
 ---
 
@@ -117,7 +117,7 @@ Real-time response time analytics at `/metrics`:
 ## Architecture
 
 ```
-containiq/
+threatcommand/
 ├── backend/
 │   ├── app.py                  # Flask app factory
 │   ├── config.py               # Environment config
@@ -156,7 +156,7 @@ containiq/
 ├── frontend/
 │   └── templates/              # Bootstrap 5 dark theme
 ├── docs/
-│   └── ContainIQ_Lab_Guide.pdf # 13-page customer onboarding guide
+│   └── ThreatCommand_Lab_Guide.pdf # 13-page customer onboarding guide
 ├── run.py                      # Entry point
 ├── requirements.txt
 ├── Dockerfile
@@ -186,8 +186,8 @@ containiq/
 
 ```bash
 # Clone the repo
-git clone https://github.com/reesiant737-creator/containiq.git
-cd containiq
+git clone https://github.com/reesiant737-creator/threatcommand.git
+cd threatcommand
 
 # Create virtual environment
 python -m venv venv
@@ -206,7 +206,7 @@ python run.py
 
 Open `http://localhost:5001` in your browser.
 
-**Default login:** `admin@containiq.local` / `changeme`
+**Default login:** `admin@threatcommand.local` / `changeme`
 
 **Load demo data** (realistic incidents, playbook runs, threat intel, patches):
 
@@ -219,8 +219,8 @@ flask seed-demo
 ### Option 2 — Docker
 
 ```bash
-git clone https://github.com/reesiant737-creator/containiq.git
-cd containiq
+git clone https://github.com/reesiant737-creator/threatcommand.git
+cd threatcommand
 
 # Set your API key
 echo "ANTHROPIC_API_KEY=sk-ant-..." > .env
@@ -337,9 +337,9 @@ Every playbook includes:
 
 ## NIST CSF 2.0 Coverage
 
-ContainIQ maps every incident to all six NIST CSF 2.0 functions and generates an org-wide coverage gap report with specific, actionable recommendations.
+ThreatCommand maps every incident to all six NIST CSF 2.0 functions and generates an org-wide coverage gap report with specific, actionable recommendations.
 
-| Function | What ContainIQ tracks |
+| Function | What ThreatCommand tracks |
 |---|---|
 | **GV — Govern** | Policy adherence, change approval workflows, audit trails |
 | **ID — Identify** | Asset involvement, vulnerability context, threat actor attribution |
@@ -366,8 +366,8 @@ This repo includes a `railway.toml` config — Railway detects it automatically.
 ### Render / Fly.io / Any Docker host
 
 ```bash
-docker build -t containiq .
-docker run -p 5001:5001 --env-file .env containiq
+docker build -t threatcommand .
+docker run -p 5001:5001 --env-file .env threatcommand
 ```
 
 ### Production checklist
@@ -392,7 +392,7 @@ docker run -p 5001:5001 --env-file .env containiq
 
 ## Customer Onboarding
 
-A 13-page professional lab guide is included in `docs/ContainIQ_Lab_Guide.pdf` — three hands-on exercises covering the full SOC workflow:
+A 13-page professional lab guide is included in `docs/ThreatCommand_Lab_Guide.pdf` — three hands-on exercises covering the full SOC workflow:
 
 | Lab | Scenario | Skills |
 |---|---|---|
@@ -428,6 +428,6 @@ MIT — free for personal and commercial use.
 
 Built by a security practitioner who wanted CrowdStrike-level workflow at startup prices.
 
-**[Live Demo](#quick-start) • [Report a Bug](https://github.com/reesiant737-creator/containiq/issues) • [Request a Feature](https://github.com/reesiant737-creator/containiq/issues)**
+**[Live Demo](#quick-start) • [Report a Bug](https://github.com/reesiant737-creator/threatcommand/issues) • [Request a Feature](https://github.com/reesiant737-creator/threatcommand/issues)**
 
 </div>

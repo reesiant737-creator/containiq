@@ -9,8 +9,13 @@ metrics_bp = Blueprint("metrics", __name__, url_prefix="/metrics")
 
 def _mttr_hours(case) -> float | None:
     if case.closed_at and case.created_at:
-        delta = case.closed_at - case.created_at.replace(tzinfo=timezone.utc if case.created_at.tzinfo is None else None)
-        return max(delta.total_seconds() / 3600, 0)
+        ca = case.created_at
+        cl = case.closed_at
+        if ca.tzinfo is None:
+            ca = ca.replace(tzinfo=timezone.utc)
+        if cl.tzinfo is None:
+            cl = cl.replace(tzinfo=timezone.utc)
+        return max((cl - ca).total_seconds() / 3600, 0)
     return None
 
 

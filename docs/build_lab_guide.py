@@ -1,4 +1,4 @@
-"""Generates ContainIQ_Lab_Guide.pdf using ReportLab."""
+"""Generates ThreatCommand_Lab_Guide.pdf using ReportLab."""
 import os
 from reportlab.lib.pagesizes import letter
 from reportlab.lib import colors
@@ -172,7 +172,7 @@ class PageDecorator:
         # Brand
         canv.setFillColor(WHITE)
         canv.setFont("Helvetica-Bold", 11)
-        canv.drawString(0.5 * inch, H - 24, "ContainIQ")
+        canv.drawString(0.5 * inch, H - 24, "ThreatCommand")
         canv.setFillColor(ACCENT)
         canv.setFont("Helvetica", 9)
         canv.drawString(1.35 * inch, H - 24, "| AI-Powered Incident Response")
@@ -188,7 +188,7 @@ class PageDecorator:
         canv.rect(0, 27, W, 1, fill=1, stroke=0)
         canv.setFillColor(GRAY_MID)
         canv.setFont("Helvetica", 8)
-        canv.drawString(0.5 * inch, 9, "ContainIQ Customer Onboarding Lab Guide  |  Version 1.0")
+        canv.drawString(0.5 * inch, 9, "ThreatCommand Customer Onboarding Lab Guide  |  Version 1.0")
         canv.drawRightString(W - 0.5 * inch, 9, f"Page {self._page}")
         canv.restoreState()
 
@@ -296,7 +296,7 @@ def build_cover(canv, doc):
     # Logo text
     canv.setFillColor(WHITE)
     canv.setFont("Helvetica-Bold", 42)
-    canv.drawString(0.65 * inch, H * 0.76, "ContainIQ")
+    canv.drawString(0.65 * inch, H * 0.76, "ThreatCommand")
     canv.setFillColor(ACCENT)
     canv.setFont("Helvetica", 14)
     canv.drawString(0.65 * inch, H * 0.72, "AI-Powered Incident Response Platform")
@@ -333,7 +333,7 @@ def build_cover(canv, doc):
     # Bottom area
     canv.setFillColor(WHITE)
     canv.setFont("Helvetica-Bold", 11)
-    canv.drawString(0.65 * inch, H * 0.09, "containiq.io")
+    canv.drawString(0.65 * inch, H * 0.09, "threatcommand.io")
     canv.setFont("Helvetica", 9)
     canv.setFillColor(colors.HexColor("#90caf9"))
     canv.drawString(0.65 * inch, H * 0.065,
@@ -356,7 +356,7 @@ def build_back(canv, doc):
     canv.setFillColor(WHITE)
     canv.setFont("Helvetica-Bold", 30)
     cy = H * 0.56
-    canv.drawCentredString(W / 2, cy, "Ready to deploy ContainIQ")
+    canv.drawCentredString(W / 2, cy, "Ready to deploy ThreatCommand")
     canv.drawCentredString(W / 2, cy - 38, "for your team?")
 
     canv.setFillColor(ACCENT)
@@ -366,19 +366,19 @@ def build_back(canv, doc):
 
     canv.setFillColor(WHITE)
     canv.setFont("Helvetica-Bold", 14)
-    canv.drawCentredString(W / 2, H * 0.29, "containiq.io")
+    canv.drawCentredString(W / 2, H * 0.29, "threatcommand.io")
     canv.setFont("Helvetica", 11)
     canv.setFillColor(colors.HexColor("#90caf9"))
-    canv.drawCentredString(W / 2, H * 0.265, "hello@containiq.io  |  github.com/containiq")
+    canv.drawCentredString(W / 2, H * 0.265, "hello@threatcommand.io  |  github.com/threatcommand")
 
     canv.setFillColor(colors.HexColor("#b0bec5"))
     canv.setFont("Helvetica-Oblique", 11)
     canv.drawCentredString(W / 2, H * 0.18,
-                           '"ContainIQ — AI-Native Incident Response. Built for teams who move fast."')
+                           '"ThreatCommand — AI-Native Incident Response. Built for teams who move fast."')
 
     canv.setFillColor(WHITE)
     canv.setFont("Helvetica-Bold", 22)
-    canv.drawCentredString(W / 2, H * 0.1, "ContainIQ")
+    canv.drawCentredString(W / 2, H * 0.1, "ThreatCommand")
     canv.setFillColor(ACCENT)
     canv.setFont("Helvetica", 10)
     canv.drawCentredString(W / 2, H * 0.08, "AI-Powered Incident Response Platform")
@@ -397,8 +397,8 @@ def build_pdf(output_path):
         rightMargin=0.65 * inch,
         topMargin=0.75 * inch,
         bottomMargin=0.55 * inch,
-        title="ContainIQ Customer Onboarding Lab Guide",
-        author="ContainIQ",
+        title="ThreatCommand Customer Onboarding Lab Guide",
+        author="ThreatCommand",
         subject="Hands-on lab exercises for SOC analysts and security teams",
     )
 
@@ -415,7 +415,7 @@ def build_pdf(output_path):
 
     toc_data = [
         ("Introduction", None),
-        ("What is ContainIQ", True),
+        ("What is ThreatCommand", True),
         ("Prerequisites", True),
         ("Lab Environment Overview", True),
         ("Lab 1 — Alert Ingestion & Case Creation", None),
@@ -444,17 +444,17 @@ def build_pdf(output_path):
 
     # ── INTRODUCTION ─────────────────────────────────────────────────────────
     story.append(Paragraph("INTRODUCTION", S["section_label"]))
-    story.append(Paragraph("Getting Started with ContainIQ", S["h1"]))
+    story.append(Paragraph("Getting Started with ThreatCommand", S["h1"]))
     story.append(divider(S))
 
-    story.append(Paragraph("What is ContainIQ?", S["h2"]))
+    story.append(Paragraph("What is ThreatCommand?", S["h2"]))
     story.append(Paragraph(
-        "ContainIQ is an open-source, AI-native Security Orchestration, Automation, and Response (SOAR) "
+        "ThreatCommand is an open-source, AI-native Security Orchestration, Automation, and Response (SOAR) "
         "platform built for SOC teams and MSSPs who need enterprise-grade incident response without the "
         "$50,000+/year price tag of tools like CrowdStrike Falcon Fusion or Cortex XSOAR.",
         S["body"]))
     story.append(Paragraph(
-        "At its core, ContainIQ combines intelligent alert ingestion, AI-powered case analysis (via "
+        "At its core, ThreatCommand combines intelligent alert ingestion, AI-powered case analysis (via "
         "Claude), structured playbook execution with approval gates, NIST CSF 2.0 compliance mapping, "
         "IOC enrichment, and a full immutable audit trail — all in one unified platform.",
         S["body"]))
@@ -462,8 +462,8 @@ def build_pdf(output_path):
     story.append(Paragraph("Who This Guide Is For", S["h2"]))
     for item in [
         "SOC Analysts who investigate and respond to security incidents",
-        "MSSP engineers onboarding new clients onto ContainIQ",
-        "Security engineers evaluating ContainIQ for their organization",
+        "MSSP engineers onboarding new clients onto ThreatCommand",
+        "Security engineers evaluating ThreatCommand for their organization",
         "Anyone learning modern AI-assisted incident response workflows",
     ]:
         story.append(Paragraph(f"• {item}", S["bullet"]))
@@ -472,7 +472,7 @@ def build_pdf(output_path):
     prereqs = [
         ["Requirement", "Details"],
         ["Python", "3.11 or higher"],
-        ["ContainIQ", "Running locally (python run.py) on port 5001, or hosted"],
+        ["ThreatCommand", "Running locally (python run.py) on port 5001, or hosted"],
         ["Browser", "Any modern browser (Chrome, Firefox, Edge)"],
         ["curl", "For Lab 1 API exercise (or use Postman / Python requests)"],
         ["API Keys (optional)", "VIRUSTOTAL_API_KEY, ABUSEIPDB_API_KEY for IOC enrichment"],
@@ -534,13 +534,13 @@ def build_pdf(output_path):
     story.append(scenario_box(
         "SCENARIO: Your SIEM fires on a suspicious inbox forwarding rule created on the CEO's account. "
         "The login originated from a known TOR exit node and the rule forwards all email to an external "
-        "domain. You need to get this into ContainIQ fast and start the investigation.", S))
+        "domain. You need to get this into ThreatCommand fast and start the investigation.", S))
     story.append(Spacer(1, 10))
 
-    story.extend(step(1, "Start ContainIQ and Log In",
-        "Open your terminal and run: <b>python run.py</b> from the ContainIQ directory. "
+    story.extend(step(1, "Start ThreatCommand and Log In",
+        "Open your terminal and run: <b>python run.py</b> from the ThreatCommand directory. "
         "Then navigate to <b>http://localhost:5001</b> and log in with: "
-        "admin@containiq.local / changeme", S))
+        "admin@threatcommand.local / changeme", S))
 
     story.extend(step(2, "Ingest the Simulated Alert via API",
         "Open a new terminal and run the following curl command to simulate a Microsoft Sentinel alert "
@@ -565,11 +565,11 @@ def build_pdf(output_path):
         "You should receive a JSON response with <b>status: created</b> and a <b>case_id</b>.", S["step_body"]))
 
     story.extend(step(3, "Navigate to the Created Case",
-        "In ContainIQ, click <b>Cases</b> in the nav bar. The new case will appear at the top "
+        "In ThreatCommand, click <b>Cases</b> in the nav bar. The new case will appear at the top "
         "with severity <b>HIGH</b>. Click <b>Investigate</b> to open it.", S))
 
     story.extend(step(4, "Review Auto-Extracted Entities",
-        "In the Entities panel on the right, you will see ContainIQ automatically extracted three "
+        "In the Entities panel on the right, you will see ThreatCommand automatically extracted three "
         "IOCs from the alert payload:", S))
 
     for e in [
@@ -615,7 +615,7 @@ def build_pdf(output_path):
 
     story.extend(explain_box(
         "What Just Happened?",
-        "ContainIQ's ingestion API auto-detected the alert as a generic JSON payload, extracted IOC "
+        "ThreatCommand's ingestion API auto-detected the alert as a generic JSON payload, extracted IOC "
         "entities from known field names (src_ip, user, domain), created a case record, logged an "
         "immutable audit entry, and fired notifications for high-severity cases — all in under a second. "
         "The IOC enrichment runs in a background thread so it never slows down ingestion. Every action "
@@ -630,7 +630,7 @@ def build_pdf(output_path):
 
     story.append(scenario_box(
         "SCENARIO: Ransomware execution is detected on workstation DESKTOP-4A2X. File encryption has "
-        "started. You have minutes to contain it before it spreads to network shares. ContainIQ's AI "
+        "started. You have minutes to contain it before it spreads to network shares. ThreatCommand's AI "
         "analyst and automated playbooks will help you move at machine speed.", S))
     story.append(Spacer(1, 10))
 
@@ -683,7 +683,7 @@ def build_pdf(output_path):
 
     story.extend(step(6, "Verify Rollback Capability",
         "In the playbook run detail, click <b>Rollback</b> to see the rollback plan. "
-        "ContainIQ maintains a full rollback manifest so every automated action can be reversed "
+        "ThreatCommand maintains a full rollback manifest so every automated action can be reversed "
         "if needed — critical for audit compliance.", S))
 
     story.append(Spacer(1, 8))
@@ -709,13 +709,13 @@ def build_pdf(output_path):
     story.append(scenario_box(
         "SCENARIO: The ransomware incident is contained. Your CISO needs a full incident report by "
         "end of day, the compliance team needs a NIST CSF 2.0 mapping, and your manager wants to "
-        "know the MTTR for this quarter. ContainIQ generates all of this in minutes.", S))
+        "know the MTTR for this quarter. ThreatCommand generates all of this in minutes.", S))
     story.append(Spacer(1, 10))
 
     story.extend(step(1, "Close the Case",
         "Open the ransomware case from Lab 2. Click <b>Set Status</b> and move it through: "
         "<b>Investigating → Contained → Closed</b>. "
-        "ContainIQ automatically records the closed_at timestamp for MTTR calculation.", S))
+        "ThreatCommand automatically records the closed_at timestamp for MTTR calculation.", S))
 
     story.extend(step(2, "Generate an Incident Report",
         "In the <b>Generate Report</b> panel on the case detail page, click <b>Incident Report</b>. "
@@ -723,12 +723,12 @@ def build_pdf(output_path):
         "affected assets, containment actions taken, and recommendations.", S))
 
     story.extend(step(3, "Generate NIST CSF 2.0 Mapping",
-        "Click <b>NIST CSF Mapping</b>. ContainIQ maps every response action taken during the case "
+        "Click <b>NIST CSF Mapping</b>. ThreatCommand maps every response action taken during the case "
         "to NIST CSF 2.0 functions: Govern (GV), Identify (ID), Protect (PR), Detect (DE), "
         "Respond (RS), Recover (RC). This is what compliance auditors want to see.", S))
 
     story.extend(step(4, "Export as PDF",
-        "Click <b>Export PDF</b>. ContainIQ generates a formatted PDF combining the incident report "
+        "Click <b>Export PDF</b>. ThreatCommand generates a formatted PDF combining the incident report "
         "and NIST mapping — ready to send to your CISO or attach to a compliance submission.", S))
 
     story.extend(step(5, "Review the Immutable Audit Trail",
@@ -755,7 +755,7 @@ def build_pdf(output_path):
 
     story.extend(explain_box(
         "What Just Happened?",
-        "ContainIQ's NIST mapper analyzed every action in the case timeline and audit log, then "
+        "ThreatCommand's NIST mapper analyzed every action in the case timeline and audit log, then "
         "classified each one against the six NIST CSF 2.0 functions automatically — no manual "
         "tagging required. The MTTR engine calculated response time from the moment the case was "
         "created to the moment it was closed, giving you real data for SLA reporting, team performance "
@@ -851,7 +851,7 @@ def build_pdf(output_path):
     story.append(Spacer(1, 6))
     story.append(Paragraph(
         "For the latest documentation, changelog, and community support: "
-        "<b>github.com/containiq</b>  |  <b>containiq.io/docs</b>",
+        "<b>github.com/threatcommand</b>  |  <b>threatcommand.io/docs</b>",
         S["footer"]))
 
     story.append(PageBreak())
@@ -893,5 +893,5 @@ def build_pdf(output_path):
 
 
 if __name__ == "__main__":
-    out = os.path.join(os.path.dirname(__file__), "ContainIQ_Lab_Guide.pdf")
+    out = os.path.join(os.path.dirname(__file__), "ThreatCommand_Lab_Guide.pdf")
     build_pdf(out)

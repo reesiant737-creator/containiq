@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}ContainIQ — Case #{{ case.id }}{% endblock %}
+{% block title %}ThreatCommand — Case #{{ case.id }}{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-start mb-4">
   <div>
@@ -471,7 +471,7 @@ function generatePdf() {
     .then(blob => {
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `containiq-case-${CASE_ID}.pdf`;
+      a.download = `threatcommand-case-${CASE_ID}.pdf`;
       a.click();
     });
 }

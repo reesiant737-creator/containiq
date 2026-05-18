@@ -53,7 +53,7 @@ def generate_report(case_id):
             io.BytesIO(pdf_bytes),
             mimetype="application/pdf",
             as_attachment=True,
-            download_name=f"containiq-case-{case_id}.pdf",
+            download_name=f"threatcommand-case-{case_id}.pdf",
         )
 
     return jsonify({"error": "unknown report type"}), 400

@@ -5,7 +5,7 @@ load_dotenv()
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY", "dev-change-in-production")
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///containiq.db")
+    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "sqlite:///threatcommand.db")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
     ANTHROPIC_MODEL = "claude-sonnet-4-6"
@@ -28,6 +28,9 @@ class Config:
     # Playbook engine
     MAX_BLAST_RADIUS_DEFAULT = 10  # max hosts a playbook can touch without extra approval
     DRY_RUN_DEFAULT = True         # always dry-run first unless overridden
+
+    # Alert ingestion API key
+    INGEST_API_KEY = os.environ.get("INGEST_API_KEY", "change-this-to-a-random-key")
 
     # Stripe billing
     STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")

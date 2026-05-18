@@ -1,5 +1,5 @@
 """
-Demo data seeder — creates a realistic, fully-populated ContainIQ environment
+Demo data seeder — creates a realistic, fully-populated ThreatCommand environment
 for demos, screenshots, and portfolio presentations.
 
 Run: flask seed-demo  (or call seed_demo_data() in app context)
@@ -48,10 +48,10 @@ def seed_demo_data():
     admin_id = admin.id
 
     # Add a second analyst user
-    analyst = User.query.filter_by(email="analyst@containiq.local").first()
+    analyst = User.query.filter_by(email="analyst@threatcommand.local").first()
     if not analyst:
         analyst = User(
-            org_id=org_id, email="analyst@containiq.local",
+            org_id=org_id, email="analyst@threatcommand.local",
             display_name="Alex Chen", role="analyst"
         )
         analyst.set_password("changeme")

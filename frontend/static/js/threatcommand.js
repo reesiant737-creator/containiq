@@ -1,4 +1,4 @@
-/* ContainIQ — global JS utilities */
+/* ThreatCommand — global JS utilities */
 
 // Check for pending patch releases and show nav badge
 (function checkPatchBadge() {

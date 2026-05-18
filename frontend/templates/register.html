@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}ThreatCommand — Create Account{% endblock %}
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-md-5">
+    <div class="text-center mb-4">
+      <i class="bi bi-shield-fill-check display-3 text-primary"></i>
+      <h1 class="h3 mt-2 fw-bold">ThreatCommand</h1>
+      <p class="text-muted">Create your free SOC workspace</p>
+    </div>
+    <div class="card ciq-card">
+      <div class="card-body p-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% for cat, msg in messages %}
+            <div class="alert alert-{{ 'danger' if cat == 'danger' else 'success' }} py-2">{{ msg }}</div>
+          {% endfor %}
+        {% endwith %}
+        <form method="POST" action="{{ url_for('auth.register') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Organization Name</label>
+            <input type="text" name="org_name" class="form-control" placeholder="Acme Security Team" required autofocus/>
+            <div class="form-text">This becomes your team workspace name.</div>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Work Email</label>
+            <input type="email" name="email" class="form-control" placeholder="you@company.com" required/>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Password</label>
+            <input type="password" name="password" class="form-control" placeholder="Min 8 characters" required minlength="8"/>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Confirm Password</label>
+            <input type="password" name="confirm" class="form-control" required/>
+          </div>
+          <button type="submit" class="btn btn-primary w-100 fw-bold">
+            <i class="bi bi-rocket-takeoff me-1"></i>Create Free Account
+          </button>
+        </form>
+        <hr class="my-3">
+        <div class="d-flex gap-2 text-muted small">
+          <i class="bi bi-check-circle-fill text-success mt-1"></i>
+          <span>Free forever — no credit card required. Upgrade to Pro for advanced AI features.</span>
+        </div>
+      </div>
+    </div>
+    <p class="text-center text-muted small mt-3">
+      Already have an account? <a href="{{ url_for('auth.login') }}">Sign in</a>
+    </p>
+  </div>
+</div>
+{% endblock %}

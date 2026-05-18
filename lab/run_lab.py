@@ -1,7 +1,7 @@
 """
-ContainIQ Attack Lab Runner
+ThreatCommand Attack Lab Runner
 ============================
-Simulates realistic cyberattack scenarios against your ContainIQ instance.
+Simulates realistic cyberattack scenarios against your ThreatCommand instance.
 Alerts fire in sequence so you can watch cases appear in real time.
 
 Usage:
@@ -20,7 +20,7 @@ from scenarios import lab1_phishing, lab2_ransomware, lab3_oauth_abuse
 
 # ── Config ────────────────────────────────────────────────────────────────────
 DEFAULT_URL = "http://localhost:5001"
-DEFAULT_KEY = "containiq-lab-key"
+DEFAULT_KEY = "threatcommand-lab-key"
 
 LABS = [lab1_phishing, lab2_ransomware, lab3_oauth_abuse]
 
@@ -38,7 +38,7 @@ DIM    = "\033[2m"
 def banner():
     print(f"""
 {BLUE}{BOLD}======================================================
-          ContainIQ Attack Lab Simulator
+          ThreatCommand Attack Lab Simulator
      Watch real incidents appear as they fire
 ======================================================{RESET}
 """)
@@ -49,11 +49,11 @@ def check_server(base_url, api_key):
         r = requests.get(f"{base_url}/api/v1/health", timeout=5)
         data = r.json()
         if data.get("status") == "ok":
-            print(f"{GREEN}[OK] ContainIQ is running at {base_url}{RESET}")
+            print(f"{GREEN}[OK] ThreatCommand is running at {base_url}{RESET}")
             return True
     except Exception:
         pass
-    print(f"{RED}[FAIL] Cannot reach ContainIQ at {base_url}{RESET}")
+    print(f"{RED}[FAIL] Cannot reach ThreatCommand at {base_url}{RESET}")
     print(f"  Make sure it's running: {BOLD}python run.py{RESET}")
     return False
 
@@ -117,9 +117,9 @@ def print_summary(all_cases, base_url):
     print(f"\n{BOLD}{GREEN}{'='*54}{RESET}")
     print(f"{BOLD}{GREEN}  Lab Complete -- {len(all_cases)} cases created{RESET}")
     print(f"{BOLD}{GREEN}{'='*54}{RESET}")
-    print(f"\n  {BOLD}Open ContainIQ to investigate:{RESET}")
+    print(f"\n  {BOLD}Open ThreatCommand to investigate:{RESET}")
     print(f"  {BLUE}{base_url}/cases{RESET}\n")
-    print(f"  {BOLD}Try these next steps in ContainIQ:{RESET}")
+    print(f"  {BOLD}Try these next steps in ThreatCommand:{RESET}")
     steps = [
         "Click a CRITICAL case -> AI Analyze",
         "Run a Playbook on the ransomware case",
@@ -133,8 +133,8 @@ def print_summary(all_cases, base_url):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="ContainIQ Attack Lab Runner")
-    parser.add_argument("--url", default=DEFAULT_URL, help="ContainIQ base URL")
+    parser = argparse.ArgumentParser(description="ThreatCommand Attack Lab Runner")
+    parser.add_argument("--url", default=DEFAULT_URL, help="ThreatCommand base URL")
     parser.add_argument("--key", default=DEFAULT_KEY, help="Ingest API key")
     parser.add_argument("--lab", type=int, choices=[1, 2, 3], help="Run only one lab (1, 2, or 3)")
     args = parser.parse_args()
@@ -147,7 +147,7 @@ def main():
     labs_to_run = [LABS[args.lab - 1]] if args.lab else LABS
 
     print(f"\n{BOLD}Running {len(labs_to_run)} scenario(s)…{RESET}")
-    print(f"{DIM}Keep ContainIQ open at {args.url}/cases to watch cases appear live.{RESET}\n")
+    print(f"{DIM}Keep ThreatCommand open at {args.url}/cases to watch cases appear live.{RESET}\n")
 
     input(f"  {BOLD}Press ENTER to start the lab…{RESET}")
 
