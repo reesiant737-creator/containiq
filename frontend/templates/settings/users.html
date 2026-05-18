@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Users — ThreatCommand Settings{% endblock %}
+{% block content %}
+
+<div class="mb-4 d-flex align-items-center justify-content-between">
+  <div>
+    <h2 class="fw-bold mb-1">
+      <i class="bi bi-people-fill me-2 text-primary"></i>User Management
+    </h2>
+    <p class="text-muted small mb-0">
+      Manage who has access to your ThreatCommand organisation.
+    </p>
+  </div>
+  <a href="{{ url_for('settings.index') }}" class="btn btn-outline-secondary btn-sm">
+    <i class="bi bi-arrow-left me-1"></i>Back to Settings
+  </a>
+</div>
+
+<div class="row g-4">
+
+  {# ── Users table ── #}
+  <div class="col-lg-8">
+    <div class="card ciq-card">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-person-lines-fill me-1"></i>Organisation Users</span>
+        <span class="badge bg-secondary">{{ org_users | length }}</span>
+      </div>
+      <div class="card-body p-0">
+        {% if org_users %}
+        <table class="table table-hover ciq-table mb-0">
+          <thead>
+            <tr>
+              <th>Email</th>
+              <th>Display Name</th>
+              <th>Role</th>
+              <th>Last Login</th>
+              <th>Status</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in org_users %}
+            <tr class="{% if not u.is_active %}opacity-50{% endif %}">
+              <td>
+                <span class="fw-semibold small">{{ u.email }}</span>
+                {% if u.id == current_user.id %}
+                  <span class="badge bg-info text-dark ms-1" style="font-size:0.7rem;">you</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">{{ u.display_name or '—' }}</td>
+              <td>
+                {% if u.role == 'admin' %}
+                  <span class="badge bg-danger">admin</span>
+                {% elif u.role == 'analyst' %}
+                  <span class="badge bg-primary">analyst</span>
+                {% elif u.role == 'approver' %}
+                  <span class="badge bg-warning text-dark">approver</span>
+                {% else %}
+                  <span class="badge bg-secondary">{{ u.role }}</span>
+                {% endif %}
+              </td>
+              <td class="text-muted small">
+                {% if u.last_login %}
+                  {{ u.last_login.strftime('%Y-%m-%d %H:%M') }}
+                {% else %}
+                  <span class="text-muted fst-italic">Never</span>
+                {% endif %}
+              </td>
+              <td>
+                {% if u.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-secondary">Inactive</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if u.id != current_user.id and u.is_active %}
+                <form method="POST"
+                      action="{{ url_for('settings.deactivate_user', user_id=u.id) }}"
+                      onsubmit="return confirm('Deactivate {{ u.email }}? They will no longer be able to log in.');">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-person-dash me-1"></i>Deactivate
+                  </button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+          <i class="bi bi-people display-4"></i>
+          <p class="mt-2">No users found.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {# ── Invite form ── #}
+  <div class="col-lg-4">
+    <div class="card ciq-card">
+      <div class="card-header"><i class="bi bi-person-plus me-1"></i>Invite User</div>
+      <div class="card-body p-4">
+        <form method="POST" action="{{ url_for('settings.invite_user') }}">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email Address</label>
+            <input type="email" name="email" class="form-control"
+                   placeholder="analyst@example.com" required autocomplete="off">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Role</label>
+            <select name="role" class="form-select" required>
+              {% for r in roles %}
+              <option value="{{ r }}"
+                {% if r == 'analyst' %}selected{% endif %}>
+                {{ r | title }}
+              </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">
+              <strong>admin</strong> — full access &amp; settings<br>
+              <strong>analyst</strong> — cases, intel, playbooks<br>
+              <strong>approver</strong> — approve playbook runs<br>
+              <strong>viewer</strong> — read-only access
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Temporary Password</label>
+            <input type="password" name="password" class="form-control"
+                   placeholder="••••••••" minlength="8" required autocomplete="new-password">
+            <div class="form-text">Ask the user to change this after first login.</div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-person-plus me-1"></i>Create User
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div class="card ciq-card mt-3">
+      <div class="card-body p-3">
+        <div class="small text-muted">
+          <i class="bi bi-info-circle me-1"></i>
+          Deactivated users cannot log in but their audit history is preserved.
+          To permanently delete a user, use the CLI or database directly.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

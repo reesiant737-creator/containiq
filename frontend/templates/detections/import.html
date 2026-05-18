@@ -1,0 +1,163 @@
+{% extends "base.html" %}
+{% block title %}ThreatCommand — Import Detection Rules{% endblock %}
+{% block content %}
+
+<div class="d-flex align-items-center mb-4">
+  <a href="{{ url_for('detections.list_rules') }}" class="btn btn-outline-secondary btn-sm me-3">
+    <i class="bi bi-arrow-left"></i>
+  </a>
+  <h2 class="fw-bold mb-0">
+    <i class="bi bi-cloud-download me-2 text-primary"></i>Import Sigma Detection Rules
+  </h2>
+</div>
+
+<!-- Info box -->
+<div class="alert alert-info d-flex gap-2 mb-4" role="alert">
+  <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+  <div>
+    <strong>What is Sigma?</strong>
+    Sigma is an open, YAML-based detection rule format used across the security community.
+    Over 10,000 free rules are available on
+    <a href="https://github.com/SigmaHQ/sigma" target="_blank" rel="noopener"
+       class="alert-link">SigmaHQ/sigma <i class="bi bi-box-arrow-up-right ms-1" style="font-size:0.75rem;"></i></a>.
+    <br class="mt-1">
+    Paste one or more Sigma rules separated by <code>---</code>, or upload a <code>.yml</code> / <code>.yaml</code> file.
+  </div>
+</div>
+
+<form method="POST" action="{{ url_for('detections.import_rules') }}" enctype="multipart/form-data">
+
+  <!-- Source label -->
+  <div class="card ciq-card mb-3">
+    <div class="card-header fw-semibold"><i class="bi bi-tag me-1"></i>Rule Source</div>
+    <div class="card-body">
+      <div class="row g-2 align-items-center">
+        <div class="col-auto">
+          <label for="source" class="form-label mb-0 small text-muted">Label imported rules as:</label>
+        </div>
+        <div class="col-auto">
+          <select name="source" id="source" class="form-select form-select-sm">
+            <option value="SigmaHQ" selected>SigmaHQ</option>
+            <option value="custom">Custom</option>
+            <option value="AI">AI Generated</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="card ciq-card">
+    <div class="card-header p-0">
+      <ul class="nav nav-tabs border-0" id="importTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+          <button class="nav-link active px-4 py-3" id="tab-paste-btn"
+                  data-bs-toggle="tab" data-bs-target="#tab-paste"
+                  type="button" role="tab">
+            <i class="bi bi-code-square me-1"></i>Paste YAML
+          </button>
+        </li>
+        <li class="nav-item" role="presentation">
+          <button class="nav-link px-4 py-3" id="tab-file-btn"
+                  data-bs-toggle="tab" data-bs-target="#tab-file"
+                  type="button" role="tab">
+            <i class="bi bi-file-earmark-code me-1"></i>Upload File
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div class="card-body">
+      <div class="tab-content">
+
+        <!-- Paste tab -->
+        <div class="tab-pane fade show active" id="tab-paste" role="tabpanel">
+          <label for="yaml_text" class="form-label small text-muted">
+            Paste one or more Sigma rules below. Separate multiple rules with <code>---</code> on its own line.
+          </label>
+          <textarea name="yaml_text" id="yaml_text" class="form-control ciq-mono"
+                    rows="20"
+                    placeholder="title: Suspicious PowerShell Execution
+description: Detects suspicious PowerShell command patterns
+status: experimental
+level: high
+tags:
+  - attack.execution
+  - attack.t1059.001
+logsource:
+  category: process_creation
+  product: windows
+detection:
+  selection:
+    Image|endswith: '\powershell.exe'
+    CommandLine|contains:
+      - '-EncodedCommand'
+      - '-enc '
+  condition: selection
+falsepositives:
+  - Legitimate admin scripts
+---
+title: Another Rule
+..."></textarea>
+        </div>
+
+        <!-- File tab -->
+        <div class="tab-pane fade" id="tab-file" role="tabpanel">
+          <label for="yaml_file" class="form-label small text-muted">
+            Upload a <code>.yml</code> or <code>.yaml</code> file. The file may contain
+            multiple Sigma rules separated by <code>---</code>.
+          </label>
+          <div class="border rounded p-4 text-center" style="border-style:dashed !important; border-color:var(--ciq-border);">
+            <i class="bi bi-file-earmark-arrow-up display-5 text-muted"></i>
+            <p class="text-muted mt-2 mb-3">Drag and drop a YAML file here, or click to select</p>
+            <input type="file" name="yaml_file" id="yaml_file"
+                   accept=".yml,.yaml"
+                   class="form-control"
+                   style="max-width:380px; margin:0 auto;">
+            <div class="text-muted small mt-2">Accepted formats: .yml, .yaml</div>
+          </div>
+        </div>
+
+      </div><!-- tab-content -->
+    </div><!-- card-body -->
+
+    <div class="card-footer d-flex gap-2 justify-content-between align-items-center">
+      <a href="https://github.com/SigmaHQ/sigma/tree/master/rules"
+         target="_blank" rel="noopener"
+         class="btn btn-outline-secondary btn-sm">
+        <i class="bi bi-github me-1"></i>Browse Free Sigma Rules on GitHub
+      </a>
+      <div class="d-flex gap-2">
+        <a href="{{ url_for('detections.list_rules') }}" class="btn btn-outline-secondary">
+          Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-cloud-download me-1"></i>Import Rules
+        </button>
+      </div>
+    </div>
+  </div><!-- card -->
+
+</form>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+// When a file is selected, auto-switch to the file tab
+document.getElementById('yaml_file').addEventListener('change', function () {
+  if (this.files.length > 0) {
+    document.getElementById('tab-file-btn').click();
+  }
+});
+
+// Clear textarea when file tab is active to avoid dual-submit confusion
+document.getElementById('tab-file-btn').addEventListener('shown.bs.tab', function () {
+  document.getElementById('yaml_text').value = '';
+});
+document.getElementById('tab-paste-btn').addEventListener('shown.bs.tab', function () {
+  const fileInput = document.getElementById('yaml_file');
+  fileInput.value = '';
+});
+</script>
+{% endblock %}

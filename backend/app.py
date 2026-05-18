@@ -47,6 +47,8 @@ def create_app(env=None):
     from .routes.patches import patches_bp
     from .routes.ingest import ingest_bp
     from .routes.metrics import metrics_bp
+    from .routes.settings import settings_bp
+    from .routes.detections import detections_bp
 
     app.register_blueprint(landing_bp)
     app.register_blueprint(billing_bp)
@@ -59,6 +61,8 @@ def create_app(env=None):
     app.register_blueprint(patches_bp)
     app.register_blueprint(ingest_bp)
     app.register_blueprint(metrics_bp)
+    app.register_blueprint(settings_bp)
+    app.register_blueprint(detections_bp)
 
     # Start the daily threat intel scheduler
     if app.config.get("THREAT_FEED_ENABLED"):

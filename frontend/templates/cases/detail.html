@@ -125,6 +125,28 @@
     </div>
   </div>
 
+  <!-- Comments / @mention collaboration -->
+  <div class="card ciq-card mb-4">
+    <div class="card-header fw-semibold">
+      <i class="bi bi-chat-left-dots me-2"></i>Team Comments
+    </div>
+    <div class="card-body p-0">
+      <div id="commentsContainer" class="px-3 py-2" style="max-height:320px;overflow-y:auto;">
+        <div class="text-muted small text-center py-3" id="noComments">No comments yet.</div>
+      </div>
+      <div class="border-top p-3">
+        <div class="input-group">
+          <textarea id="commentBody" class="form-control" rows="2"
+                    placeholder="Add a comment... use @name to mention teammates"></textarea>
+          <button class="btn btn-primary" id="btnComment">
+            <i class="bi bi-send"></i>
+          </button>
+        </div>
+        <div class="form-text">Type @ to mention a teammate</div>
+      </div>
+    </div>
+  </div>
+
   <!-- Right column: entities, evidence, playbooks -->
   <div class="col-lg-5">
 
@@ -258,7 +280,7 @@
           <button class="btn btn-outline-success btn-sm" onclick="generateReport('audit_packet')">
             <i class="bi bi-shield-check me-1"></i>Audit Packet
           </button>
-          <a href="/reports/generate/{{ case.id }}" onclick="event.preventDefault(); generatePdf()"
+          <a href="{{ url_for('cases.export_case_pdf', case_id=case.id) }}"
              class="btn btn-outline-danger btn-sm">
             <i class="bi bi-filetype-pdf me-1"></i>Export PDF
           </a>
@@ -488,5 +510,41 @@ fetch(`/ai/playbook-recommend/${CASE_ID}`, {method:'POST'})
         </div>`;
     }
   }).catch(()=>{});
+
+// ── Comments ─────────────────────────────────────────────────
+function loadComments() {
+  fetch(`/cases/${CASE_ID}/comments`)
+    .then(r => r.json())
+    .then(comments => {
+      const c = document.getElementById('commentsContainer');
+      if (!comments.length) { c.innerHTML = '<div class="text-muted small text-center py-3">No comments yet.</div>'; return; }
+      c.innerHTML = comments.map(cm => `
+        <div class="border-bottom py-2">
+          <div class="d-flex justify-content-between">
+            <strong class="small">${cm.author}</strong>
+            <span class="text-muted" style="font-size:0.75rem">${new Date(cm.created_at).toLocaleString()}</span>
+          </div>
+          <div class="small mt-1">${cm.body.replace(/@([\w.]+)/g, '<span class="badge bg-primary-subtle text-primary">@$1</span>')}</div>
+        </div>`).join('');
+      c.scrollTop = c.scrollHeight;
+    });
+}
+loadComments();
+
+document.getElementById('btnComment').addEventListener('click', function() {
+  const body = document.getElementById('commentBody').value.trim();
+  if (!body) return;
+  fetch(`/cases/${CASE_ID}/comments`, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({body})
+  }).then(r => {
+    if (r.ok) { document.getElementById('commentBody').value = ''; loadComments(); }
+  });
+});
+
+// Allow Ctrl+Enter to submit comment
+document.getElementById('commentBody').addEventListener('keydown', function(e) {
+  if (e.ctrlKey && e.key === 'Enter') document.getElementById('btnComment').click();
+});
 </script>
 {% endblock %}

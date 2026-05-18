@@ -1,0 +1,26 @@
+name: Deploy ThreatCommand to Railway
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # allows manual trigger from GitHub UI
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service threatcommand --detach
+
+      - name: Health check
+        run: |
+          echo "Deployment triggered. Check Railway dashboard for status:"
+          echo "https://railway.app/dashboard"

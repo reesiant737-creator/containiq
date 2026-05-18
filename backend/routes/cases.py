@@ -161,3 +161,190 @@ def add_evidence(case_id):
           resource_type="evidence", resource_id=str(ev.id), case_id=case_id,
           payload={"name": ev.name, "type": ev.evidence_type})
     return jsonify(ev.to_dict()), 201
+
+
+# ---------------------------------------------------------------------------
+# Feature: Case Comments with @mentions
+# ---------------------------------------------------------------------------
+
+@cases_bp.route("/cases/<int:case_id>/comments", methods=["GET", "POST"])
+@login_required
+def case_comments(case_id):
+    case = Case.query.filter_by(id=case_id, org_id=current_user.org_id).first_or_404()
+    if request.method == "POST":
+        from ..models.case import CaseComment
+        from ..models.user import User
+        import re, json
+        body = request.json.get("body", "").strip()
+        if not body:
+            return jsonify({"error": "body required"}), 400
+        # Extract @mentions - find @email or @display_name patterns
+        mention_names = re.findall(r'@([\w.]+)', body)
+        mention_ids = []
+        for name in mention_names:
+            u = User.query.filter(
+                User.org_id == current_user.org_id,
+                db.or_(User.email.ilike(f"{name}%"), User.display_name.ilike(f"{name}%"))
+            ).first()
+            if u:
+                mention_ids.append(u.id)
+        comment = CaseComment(
+            case_id=case.id, author_id=current_user.id,
+            body=body, mentions=json.dumps(mention_ids)
+        )
+        db.session.add(comment)
+        db.session.commit()
+        audit("case.comment", user_id=current_user.id, org_id=current_user.org_id,
+              resource_type="comment", resource_id=str(comment.id), case_id=case_id)
+        return jsonify(comment.to_dict()), 201
+    # GET
+    from ..models.case import CaseComment
+    comments = CaseComment.query.filter_by(case_id=case.id).order_by(CaseComment.created_at.asc()).all()
+    return jsonify([c.to_dict() for c in comments])
+
+
+@cases_bp.route("/cases/api/mention-search")
+@login_required
+def mention_search():
+    """Return org users matching a search term for @mention autocomplete."""
+    from ..models.user import User
+    q = request.args.get("q", "")
+    users = User.query.filter(
+        User.org_id == current_user.org_id,
+        User.is_active == True,
+        db.or_(User.email.ilike(f"%{q}%"), User.display_name.ilike(f"%{q}%"))
+    ).limit(8).all()
+    return jsonify([{"id": u.id, "name": u.display_name or u.email, "email": u.email} for u in users])
+
+
+# ---------------------------------------------------------------------------
+# Feature: Executive Case PDF Export
+# ---------------------------------------------------------------------------
+
+@cases_bp.route("/cases/<int:case_id>/export/pdf")
+@login_required
+def export_case_pdf(case_id):
+    """Generate and download a professional PDF incident report."""
+    from ..models.case import CaseComment
+    case = Case.query.filter_by(id=case_id, org_id=current_user.org_id).first_or_404()
+    timeline = TimelineEvent.query.filter_by(case_id=case.id).order_by(TimelineEvent.event_time.asc()).all()
+    evidence = Evidence.query.filter_by(case_id=case.id).all()
+    comments = CaseComment.query.filter_by(case_id=case.id).order_by(CaseComment.created_at.asc()).all()
+
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, HRFlowable
+    from reportlab.lib.units import inch
+    import io
+    from flask import make_response
+
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=letter,
+                            rightMargin=0.75*inch, leftMargin=0.75*inch,
+                            topMargin=0.75*inch, bottomMargin=0.75*inch)
+    styles = getSampleStyleSheet()
+
+    # Custom styles
+    title_style = ParagraphStyle('Title', parent=styles['Title'],
+                                  fontSize=20, textColor=colors.HexColor('#1a1a2e'), spaceAfter=6)
+    h2_style = ParagraphStyle('H2', parent=styles['Heading2'],
+                               fontSize=13, textColor=colors.HexColor('#16213e'),
+                               spaceBefore=14, spaceAfter=4)
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, spaceAfter=4)
+    meta_style = ParagraphStyle('Meta', parent=styles['Normal'], fontSize=9,
+                                textColor=colors.grey, spaceAfter=2)
+
+    SEV_COLORS = {'critical': '#dc3545', 'high': '#fd7e14', 'medium': '#ffc107', 'low': '#28a745'}
+    sev_color = colors.HexColor(SEV_COLORS.get(case.severity, '#6c757d'))
+
+    story = []
+
+    # Header
+    story.append(Paragraph("INCIDENT REPORT", meta_style))
+    story.append(Paragraph(f"Case #{case.id}: {case.title}", title_style))
+    story.append(HRFlowable(width="100%", thickness=2, color=sev_color))
+    story.append(Spacer(1, 8))
+
+    # Metadata table
+    created_str = case.created_at.strftime('%Y-%m-%d %H:%M UTC') if case.created_at else 'Unknown'
+    closed_str = case.closed_at.strftime('%Y-%m-%d %H:%M UTC') if case.closed_at else 'Open'
+    meta_data = [
+        ['Severity', case.severity.upper(), 'Status', case.status.upper()],
+        ['Created', created_str, 'Closed', closed_str],
+        ['Source', case.source or 'manual', 'Source Ref', case.source_ref or 'N/A'],
+    ]
+    meta_table = Table(meta_data, colWidths=[1.2*inch, 2.3*inch, 1.2*inch, 2.3*inch])
+    meta_table.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (0,-1), colors.HexColor('#f0f0f0')),
+        ('BACKGROUND', (2,0), (2,-1), colors.HexColor('#f0f0f0')),
+        ('FONTNAME', (0,0), (-1,-1), 'Helvetica'),
+        ('FONTSIZE', (0,0), (-1,-1), 9),
+        ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+        ('PADDING', (0,0), (-1,-1), 5),
+    ]))
+    story.append(meta_table)
+    story.append(Spacer(1, 12))
+
+    # Description
+    if case.description:
+        story.append(Paragraph("Description", h2_style))
+        story.append(Paragraph(case.description or "No description provided.", body_style))
+        story.append(Spacer(1, 8))
+
+    # Entities
+    if case.entities:
+        story.append(Paragraph("Entities / Indicators of Compromise", h2_style))
+        ent_data = [['Type', 'Value']] + [[e.entity_type, e.value] for e in case.entities]
+        ent_table = Table(ent_data, colWidths=[1.5*inch, 5.5*inch])
+        ent_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#16213e')),
+            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+            ('FONTNAME', (0,0), (-1,0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0,0), (-1,-1), 9),
+            ('GRID', (0,0), (-1,-1), 0.5, colors.lightgrey),
+            ('PADDING', (0,0), (-1,-1), 5),
+            ('ROWBACKGROUNDS', (0,1), (-1,-1), [colors.white, colors.HexColor('#f8f9fa')]),
+        ]))
+        story.append(ent_table)
+        story.append(Spacer(1, 8))
+
+    # Timeline
+    if timeline:
+        story.append(Paragraph("Investigation Timeline", h2_style))
+        for te in timeline:
+            ts = te.event_time.strftime('%Y-%m-%d %H:%M UTC') if te.event_time else ''
+            story.append(Paragraph(f"<b>{ts}</b> — {te.event_type}", meta_style))
+            story.append(Paragraph(te.description or '', body_style))
+        story.append(Spacer(1, 8))
+
+    # Evidence
+    if evidence:
+        story.append(Paragraph("Evidence", h2_style))
+        for ev in evidence:
+            story.append(Paragraph(f"<b>{ev.name}</b> ({ev.evidence_type})", body_style))
+            if ev.content_hash:
+                story.append(Paragraph(f"SHA-256: {ev.content_hash}", meta_style))
+        story.append(Spacer(1, 8))
+
+    # Analyst comments
+    if comments:
+        story.append(Paragraph("Analyst Notes", h2_style))
+        for c in comments:
+            ts = c.created_at.strftime('%Y-%m-%d %H:%M UTC') if c.created_at else ''
+            author = c.author.display_name or c.author.email if c.author else 'Unknown'
+            story.append(Paragraph(f"<b>{author}</b> — {ts}", meta_style))
+            story.append(Paragraph(c.body, body_style))
+        story.append(Spacer(1, 8))
+
+    # Footer
+    story.append(HRFlowable(width="100%", thickness=1, color=colors.lightgrey))
+    story.append(Paragraph(f"Generated by ThreatCommand — {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M UTC')}", meta_style))
+
+    doc.build(story)
+    buf.seek(0)
+
+    response = make_response(buf.read())
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'attachment; filename="incident-{case.id}-report.pdf"'
+    return response

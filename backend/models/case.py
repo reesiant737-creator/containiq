@@ -150,3 +150,25 @@ class Evidence(db.Model):
             "hash": self.content_hash,
             "created_at": self.created_at.isoformat(),
         }
+
+
+class CaseComment(db.Model):
+    __tablename__ = "case_comments"
+    id = db.Column(db.Integer, primary_key=True)
+    case_id = db.Column(db.Integer, db.ForeignKey("cases.id"), nullable=False)
+    author_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    body = db.Column(db.Text, nullable=False)
+    mentions = db.Column(db.Text)  # JSON list of user IDs mentioned
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(timezone.utc))
+    edited_at = db.Column(db.DateTime)
+
+    author = db.relationship("User", foreign_keys=[author_id])
+
+    def to_dict(self):
+        return {
+            "id": self.id, "case_id": self.case_id,
+            "author": self.author.display_name or self.author.email if self.author else "Unknown",
+            "author_id": self.author_id, "body": self.body,
+            "mentions": json.loads(self.mentions or "[]"),
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+        }

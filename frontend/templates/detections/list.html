@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}ThreatCommand — Detection Rules{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold mb-0">
+    <i class="bi bi-shield-check me-2 text-primary"></i>Detection Rules
+  </h2>
+  <a href="{{ url_for('detections.import_rules_form') }}" class="btn btn-primary">
+    <i class="bi bi-cloud-download me-1"></i>Import Rules
+  </a>
+</div>
+
+<!-- Stats bar -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card text-center py-3">
+      <div class="fs-2 fw-bold text-primary">{{ stats.total }}</div>
+      <div class="text-muted small">Total Rules</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card text-center py-3">
+      <div class="fs-2 fw-bold text-success">{{ stats.active }}</div>
+      <div class="text-muted small">Active</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card text-center py-3">
+      <div class="fs-2 fw-bold" style="color:#7c0a02">{{ stats.critical }}</div>
+      <div class="text-muted small">Critical Severity</div>
+    </div>
+  </div>
+  <div class="col-6 col-md-3">
+    <div class="card ciq-card ciq-stat-card text-center py-3">
+      <div class="fs-2 fw-bold text-danger">{{ stats.high }}</div>
+      <div class="text-muted small">High Severity</div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter bar -->
+<div class="card ciq-card mb-3">
+  <div class="card-body py-2">
+    <form method="GET" class="row g-2 align-items-center">
+      <div class="col-auto">
+        <select name="severity" class="form-select form-select-sm">
+          <option value="">All Severities</option>
+          {% for s in severities %}
+          <option value="{{ s }}" {% if current_severity == s %}selected{% endif %}>{{ s|title }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          <option value="active"   {% if current_status == 'active'   %}selected{% endif %}>Active</option>
+          <option value="disabled" {% if current_status == 'disabled' %}selected{% endif %}>Disabled</option>
+          <option value="draft"    {% if current_status == 'draft'    %}selected{% endif %}>Draft</option>
+        </select>
+      </div>
+      <div class="col-auto">
+        <select name="source" class="form-select form-select-sm">
+          <option value="">All Sources</option>
+          {% for s in sources %}
+          <option value="{{ s }}" {% if current_source == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-auto">
+        <button type="submit" class="btn btn-sm btn-outline-primary">Filter</button>
+        <a href="{{ url_for('detections.list_rules') }}" class="btn btn-sm btn-outline-secondary ms-1">Clear</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Rules table -->
+<div class="card ciq-card">
+  <div class="card-body p-0">
+    {% if rules %}
+    <table class="table table-hover ciq-table mb-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Name</th>
+          <th>Severity</th>
+          <th>Source</th>
+          <th>MITRE Techniques</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rule in rules %}
+        {% set rd = rule.to_dict() %}
+        <tr>
+          <td class="text-muted">{{ rule.id }}</td>
+          <td>
+            <div class="fw-semibold">{{ rule.name }}</div>
+            {% if rule.description %}
+            <div class="text-muted small">
+              {{ rule.description[:80] }}{% if rule.description|length > 80 %}…{% endif %}
+            </div>
+            {% endif %}
+          </td>
+          <td>
+            <span class="badge ciq-sev-{{ rule.severity }}">{{ rule.severity }}</span>
+          </td>
+          <td class="text-muted small">{{ rule.source or '—' }}</td>
+          <td>
+            {% for t in rd.mitre_techniques[:4] %}
+            <span class="badge bg-secondary me-1" style="font-size:0.7rem;">{{ t }}</span>
+            {% endfor %}
+            {% if rd.mitre_techniques|length > 4 %}
+            <span class="text-muted small">+{{ rd.mitre_techniques|length - 4 }} more</span>
+            {% endif %}
+            {% if not rd.mitre_techniques %}
+            <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('detections.toggle_rule', rule_id=rule.id) }}" class="d-inline">
+              {% if rule.status == 'active' %}
+              <button type="submit" class="btn btn-sm btn-outline-success" title="Click to disable">
+                <i class="bi bi-toggle-on me-1"></i>Active
+              </button>
+              {% elif rule.status == 'disabled' %}
+              <button type="submit" class="btn btn-sm btn-outline-secondary" title="Click to enable">
+                <i class="bi bi-toggle-off me-1"></i>Disabled
+              </button>
+              {% else %}
+              <span class="badge bg-secondary">{{ rule.status }}</span>
+              {% endif %}
+            </form>
+          </td>
+          <td class="text-muted small">
+            {{ rule.created_at.strftime('%Y-%m-%d') if rule.created_at else '—' }}
+          </td>
+          <td>
+            <form method="POST" action="{{ url_for('detections.delete_rule', rule_id=rule.id) }}"
+                  class="d-inline"
+                  onsubmit="return confirm('Delete this rule?')">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete rule">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="text-center py-5 text-muted">
+      <i class="bi bi-shield-x display-4"></i>
+      <p class="mt-2">No detection rules found.</p>
+      <a href="{{ url_for('detections.import_rules_form') }}" class="btn btn-primary mt-1">
+        <i class="bi bi-cloud-download me-1"></i>Import Sigma Rules
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
