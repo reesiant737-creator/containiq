@@ -37,7 +37,10 @@ class Config:
     STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
     STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
     STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID", "")  # price_xxx from Stripe dashboard
-    STRIPE_PRO_PRICE_DISPLAY = os.environ.get("STRIPE_PRO_PRICE_DISPLAY", "$99/month")
+    STRIPE_PRO_PRICE_DISPLAY = os.environ.get("STRIPE_PRO_PRICE_DISPLAY", "$79/analyst/month")
+    # Per-seat pricing
+    PRICE_PER_SEAT_MONTHLY = 79   # USD
+    PRICE_PER_SEAT_ANNUAL  = 63   # USD (billed annually — 20% off)
 
 
 class DevelopmentConfig(Config):

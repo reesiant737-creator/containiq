@@ -63,15 +63,15 @@
             </div>
             <div class="col-md-5">
               <div class="card" style="background: var(--bs-dark); border: 1px solid rgba(13,110,253,0.4); border-radius:10px; padding:1.5rem; text-align:center;">
-                <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6ea8fe; margin-bottom:0.5rem;">Pro Plan</div>
-                <div style="font-size:2.25rem; font-weight:800; line-height:1;">{{ price_display }}</div>
-                <div class="text-muted small mb-3">per organization</div>
+                <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6ea8fe; margin-bottom:0.5rem;">Growth Plan</div>
+                <div style="font-size:2rem; font-weight:800; line-height:1;">$79</div>
+                <div class="text-muted small mb-1">per analyst / month</div>
+                <div style="font-size:0.7rem;color:#4ade80;margin-bottom:0.75rem;">$63/analyst/mo billed annually</div>
                 <ul class="list-unstyled small text-start mb-3">
-                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Everything in Free</li>
-                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Managed hosting</li>
-                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>SSO / SAML</li>
-                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Priority support</li>
-                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>SLA breach alerts</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Unlimited analyst seats</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>All AI features</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Sigma rule import</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Priority support + SLA</li>
                 </ul>
                 {% if current_user.role == 'admin' %}
                   <form method="POST" action="{{ url_for('billing.checkout') }}">

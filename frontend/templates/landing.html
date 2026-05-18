@@ -639,62 +639,134 @@
   <div class="container-xl">
     <div class="text-center mb-5">
       <div class="section-label">Simple, transparent pricing</div>
-      <h2 class="section-title">Start free. Scale when you're ready.</h2>
-      <p class="section-sub mx-auto">ThreatCommand is MIT-licensed and fully open source. Self-host for free forever. A hosted managed tier is coming for teams who want zero ops overhead.</p>
+      <h2 class="section-title">Pay per analyst. Not per gigabyte.</h2>
+      <p class="section-sub mx-auto">Splunk charges you more every time you add a log source. We charge per analyst — so you can log everything you need without watching a billing meter.</p>
+      <!-- Annual toggle -->
+      <div class="d-flex justify-content-center align-items-center gap-3 mt-4">
+        <span style="color:var(--ciq-muted)">Monthly</span>
+        <div class="form-check form-switch mb-0">
+          <input class="form-check-input" type="checkbox" id="annualToggle" role="switch" style="width:2.5rem;height:1.3rem;cursor:pointer;">
+        </div>
+        <span style="color:var(--ciq-muted)">Annual <span class="badge bg-success" style="font-size:0.7rem;">Save 20%</span></span>
+      </div>
     </div>
 
     <div class="row g-4 justify-content-center">
-      <div class="col-md-6 col-lg-5">
-        <div class="pricing-card">
-          <div class="mb-3">
-            <span class="badge bg-secondary" style="font-size:0.75rem;">Open Source</span>
-          </div>
+
+      <!-- Free -->
+      <div class="col-md-6 col-lg-4">
+        <div class="pricing-card h-100">
+          <div class="mb-2"><span class="badge bg-secondary">Free Forever</span></div>
           <div class="price">$0</div>
-          <div class="price-sub mt-1 mb-4">Free. Self-hosted. MIT license.</div>
+          <div class="price-sub mb-1">1 analyst seat</div>
+          <div class="price-sub mb-4" style="color:var(--ciq-muted);font-size:0.8rem;">No credit card required</div>
           <ul class="list-unstyled pricing-features mb-4">
-            <li><i class="bi bi-check-circle-fill text-success"></i> Full feature set — nothing held back</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Unlimited cases, users, orgs</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Docker one-command deploy</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> SQLite dev / PostgreSQL production</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> 5 production playbooks included</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> MIT license — commercial use OK</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> 13-page lab guide included</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 1 analyst seat</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 100 cases / month</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> All core features</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Alert ingest API</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 5 playbooks</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 30-day retention</li>
+            <li><i class="bi bi-x-circle text-muted"></i> <span style="color:var(--ciq-muted)">AI analysis</span></li>
+            <li><i class="bi bi-x-circle text-muted"></i> <span style="color:var(--ciq-muted)">Sigma rule import</span></li>
           </ul>
-          <a href="https://github.com/reesiant737-creator/threatcommand" class="btn-ciq-outline w-100 justify-content-center" target="_blank">
-            <i class="bi bi-github"></i> Get the Code
+          <a href="/auth/register" class="btn-ciq-outline w-100 justify-content-center">
+            <i class="bi bi-rocket-takeoff"></i> Start Free
           </a>
         </div>
       </div>
 
-      <div class="col-md-6 col-lg-5">
-        <div class="pricing-card featured">
-          <div class="featured-badge">Coming Soon</div>
-          <div class="mb-3">
-            <span class="badge bg-primary" style="font-size:0.75rem;">Hosted / Managed</span>
+      <!-- Growth — featured -->
+      <div class="col-md-6 col-lg-4">
+        <div class="pricing-card featured h-100">
+          <div class="featured-badge">Most Popular</div>
+          <div class="mb-2"><span class="badge bg-primary">Growth</span></div>
+          <div class="price">
+            <span id="growthPrice">$79</span><span style="font-size:1rem;font-weight:400;">/analyst/mo</span>
           </div>
-          <div class="price">TBD</div>
-          <div class="price-sub mt-1 mb-4">Per org per month. No infra to manage.</div>
+          <div class="price-sub mb-1" id="growthAnnual" style="display:none;color:#4ade80;font-size:0.85rem;">$63/analyst/mo billed annually</div>
+          <div class="price-sub mb-4">
+            5 analysts = <strong id="growth5">$395</strong>/mo &nbsp;·&nbsp; 10 = <strong id="growth10">$790</strong>/mo
+          </div>
           <ul class="list-unstyled pricing-features mb-4">
-            <li><i class="bi bi-check-circle-fill text-success"></i> Everything in Open Source</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Managed hosting on Railway/Render</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> Automated backups</li>
-            <li><i class="bi bi-check-circle-fill text-success"></i> SSO / SAML for enterprise</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>Unlimited analyst seats</strong></li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Unlimited cases</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>All AI features</strong> (Claude-powered)</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Sigma rule import (10k+ free rules)</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> IOC auto-enrichment (VT, AbuseIPDB, OTX)</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> MITRE ATT&CK mapping</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> NIST CSF compliance reports</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Executive PDF export</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 1-year log retention</li>
             <li><i class="bi bi-check-circle-fill text-success"></i> Priority email support</li>
-            <li><i class="bi bi-clock text-muted"></i> SLA breach alerting</li>
-            <li><i class="bi bi-clock text-muted"></i> Stripe billing integration</li>
           </ul>
-          <button class="btn-ciq-primary w-100 justify-content-center" disabled style="opacity:0.6; cursor:not-allowed;">
-            <i class="bi bi-bell"></i> Notify Me on Launch
-          </button>
+          <a href="/auth/register" class="btn-ciq-primary w-100 justify-content-center">
+            <i class="bi bi-lightning-charge-fill"></i> Start 14-Day Free Trial
+          </a>
+          <p class="text-center mt-2" style="font-size:0.75rem;color:var(--ciq-muted);">No credit card for trial</p>
+        </div>
+      </div>
+
+      <!-- Enterprise -->
+      <div class="col-md-6 col-lg-4">
+        <div class="pricing-card h-100">
+          <div class="mb-2"><span class="badge" style="background:#ffc107;color:#000;">Enterprise</span></div>
+          <div class="price">Custom</div>
+          <div class="price-sub mb-4">Volume pricing · MSSP-ready</div>
+          <ul class="list-unstyled pricing-features mb-4">
+            <li><i class="bi bi-check-circle-fill text-success"></i> Everything in Growth</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> <strong>Multi-tenant MSSP mode</strong></li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> SSO / SAML / OIDC</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Custom integrations & API</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Dedicated CSM</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> 99.9% uptime SLA</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> White-label option</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> On-prem / private cloud deploy</li>
+            <li><i class="bi bi-check-circle-fill text-success"></i> Volume discounts</li>
+          </ul>
+          <a href="mailto:hello@threatcommand.io" class="btn-ciq-outline w-100 justify-content-center">
+            <i class="bi bi-telephone"></i> Talk to Sales
+          </a>
         </div>
       </div>
     </div>
 
-    <p class="text-center mt-4" style="font-size:0.82rem; color: var(--ciq-muted);">
-      MSSPs and large teams — reach out on GitHub Discussions for volume pricing discussions.
-    </p>
+    <!-- Competitor comparison callout -->
+    <div class="mt-5 p-4 text-center" style="background:var(--ciq-surface);border:1px solid var(--ciq-border);border-radius:12px;max-width:700px;margin:2rem auto 0;">
+      <div class="fw-bold mb-3" style="font-size:1.1rem;">The same 10-analyst SOC team pays:</div>
+      <div class="row g-3 text-center">
+        <div class="col-4">
+          <div style="color:var(--ciq-muted);font-size:0.8rem;">Splunk</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#dc3545;">$18,000<span style="font-size:0.85rem;font-weight:400;">/mo</span></div>
+        </div>
+        <div class="col-4">
+          <div style="color:var(--ciq-muted);font-size:0.8rem;">Palo Alto XSIAM</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#fd7e14;">$12,000<span style="font-size:0.85rem;font-weight:400;">/mo</span></div>
+        </div>
+        <div class="col-4">
+          <div style="color:var(--ciq-muted);font-size:0.8rem;">ThreatCommand</div>
+          <div style="font-size:1.5rem;font-weight:700;color:#4ade80;">$790<span style="font-size:0.85rem;font-weight:400;">/mo</span></div>
+        </div>
+      </div>
+      <div class="mt-3" style="color:var(--ciq-muted);font-size:0.85rem;">All three tools handle the same job. One costs 23x more.</div>
+    </div>
   </div>
 </section>
+
+<script>
+// Annual toggle logic
+const toggle = document.getElementById('annualToggle');
+if (toggle) {
+  toggle.addEventListener('change', function() {
+    const annual = this.checked;
+    const price = annual ? 63 : 79;
+    document.getElementById('growthPrice').textContent = '$' + price;
+    document.getElementById('growth5').textContent = '$' + (price * 5).toLocaleString();
+    document.getElementById('growth10').textContent = '$' + (price * 10).toLocaleString();
+    document.getElementById('growthAnnual').style.display = annual ? 'block' : 'none';
+  });
+}
+</script>
 
 <!-- ── Use cases ── -->
 <section class="alt">
