@@ -59,8 +59,10 @@ def start_ngrok():
         tunnel = ngrok.connect(5001, "http")
         return None, tunnel.public_url
 
+    # Use static domain so URL never changes
     proc = subprocess.Popen(
-        [str(ngrok_exe), "http", "5001", "--log=stdout"],
+        [str(ngrok_exe), "http", "5001",
+         "--domain=wildfowl-folic-plutonium.ngrok-free.dev"],
         stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
     )
     time.sleep(3)

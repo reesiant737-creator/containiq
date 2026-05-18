@@ -44,7 +44,9 @@ def register():
         db.session.add(org)
         db.session.flush()
 
-        user = User(org_id=org.id, email=email, role="admin", is_active=True)
+        display_name = email.split("@")[0].replace(".", " ").replace("_", " ").title()
+        user = User(org_id=org.id, email=email, role="admin",
+                    is_active=True, display_name=display_name)
         user.set_password(password)
         db.session.add(user)
         db.session.commit()
