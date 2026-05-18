@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block title %}Billing — ContainIQ{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+
+    <div class="mb-4">
+      <h2 class="fw-bold mb-1"><i class="bi bi-credit-card me-2 text-primary"></i>Billing</h2>
+      <p class="text-muted small">Manage your subscription and payment details.</p>
+    </div>
+
+    {# ── Current Plan ── #}
+    <div class="card ciq-card mb-4">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-box me-1"></i>Current Plan</span>
+        {% if org.plan == 'pro' %}
+          <span class="badge bg-primary">Pro</span>
+        {% else %}
+          <span class="badge bg-secondary">Free</span>
+        {% endif %}
+      </div>
+      <div class="card-body p-4">
+        {% if org.plan == 'pro' and org.plan_status == 'active' %}
+          <div class="d-flex align-items-center gap-3 mb-3">
+            <i class="bi bi-shield-fill-check text-success" style="font-size:2rem;"></i>
+            <div>
+              <div class="fw-bold fs-5">Pro Plan — Active</div>
+              <div class="text-muted small">Full hosted access · All features · Priority support</div>
+            </div>
+          </div>
+          <form method="POST" action="{{ url_for('billing.portal') }}">
+            <button type="submit" class="btn btn-outline-secondary btn-sm">
+              <i class="bi bi-gear me-1"></i>Manage Subscription / Cancel
+            </button>
+          </form>
+
+        {% elif org.plan_status == 'past_due' %}
+          <div class="alert alert-warning mb-3">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            Your payment is past due. Update your payment method to keep Pro access.
+          </div>
+          <form method="POST" action="{{ url_for('billing.portal') }}">
+            <button type="submit" class="btn btn-warning btn-sm fw-bold">
+              <i class="bi bi-credit-card me-1"></i>Update Payment Method
+            </button>
+          </form>
+
+        {% else %}
+          {# Free tier #}
+          <div class="row g-4 align-items-center">
+            <div class="col-md-7">
+              <div class="fw-bold fs-5 mb-1">Free Plan</div>
+              <p class="text-muted small mb-3">
+                You're on the self-hosted free plan. Upgrade to Pro for managed hosting, SSO, priority support, and SLA tracking.
+              </p>
+              <ul class="list-unstyled small mb-0" style="color: var(--bs-secondary-color);">
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Full feature set</li>
+                <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Unlimited cases &amp; users</li>
+                <li class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Managed hosting</li>
+                <li class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>SSO / SAML</li>
+                <li class="mb-1"><i class="bi bi-x-circle text-muted me-1"></i>Priority support</li>
+              </ul>
+            </div>
+            <div class="col-md-5">
+              <div class="card" style="background: var(--bs-dark); border: 1px solid rgba(13,110,253,0.4); border-radius:10px; padding:1.5rem; text-align:center;">
+                <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#6ea8fe; margin-bottom:0.5rem;">Pro Plan</div>
+                <div style="font-size:2.25rem; font-weight:800; line-height:1;">{{ price_display }}</div>
+                <div class="text-muted small mb-3">per organization</div>
+                <ul class="list-unstyled small text-start mb-3">
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Everything in Free</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Managed hosting</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>SSO / SAML</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>Priority support</li>
+                  <li class="mb-1"><i class="bi bi-check-circle-fill text-success me-1"></i>SLA breach alerts</li>
+                </ul>
+                {% if current_user.role == 'admin' %}
+                  <form method="POST" action="{{ url_for('billing.checkout') }}">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold">
+                      <i class="bi bi-arrow-up-circle me-1"></i>Upgrade to Pro
+                    </button>
+                  </form>
+                {% else %}
+                  <div class="text-muted small">Ask your admin to upgrade.</div>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    {# ── What's included ── #}
+    <div class="card ciq-card mb-4">
+      <div class="card-header"><i class="bi bi-list-check me-1"></i>What's Always Free (Self-Hosted)</div>
+      <div class="card-body p-4">
+        <div class="row g-3">
+          {% for feature in [
+            ("bi-folder2-open", "Case management", "Unlimited cases, entities, timelines, evidence"),
+            ("bi-cpu", "AI Analyst", "MITRE mapping, hunt queries, chatbot — full Claude integration"),
+            ("bi-journal-code", "Playbook engine", "All 5 production playbooks, approval gates, rollback"),
+            ("bi-broadcast", "Daily threat intel", "CISA KEV, URLhaus, OTX — every morning automatically"),
+            ("bi-patch-check", "Daily security patches", "Auto-apply low-risk detections and playbook updates daily"),
+            ("bi-diagram-3", "NIST CSF 2.0", "Full compliance mapping and gap report"),
+            ("bi-graph-up", "MTTR metrics", "Response time analytics and SLA dashboards"),
+            ("bi-lock", "Audit log", "Immutable, append-only — every action logged forever"),
+          ] %}
+          <div class="col-md-6">
+            <div class="d-flex align-items-start gap-2">
+              <i class="bi {{ feature[0] }} text-success mt-1" style="font-size:1rem; flex-shrink:0;"></i>
+              <div>
+                <div class="fw-600" style="font-size:0.875rem; font-weight:600;">{{ feature[1] }}</div>
+                <div class="text-muted" style="font-size:0.8rem;">{{ feature[2] }}</div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    {# ── Billing info ── #}
+    {% if org.stripe_customer_id %}
+    <div class="card ciq-card">
+      <div class="card-header"><i class="bi bi-receipt me-1"></i>Billing Details</div>
+      <div class="card-body p-3">
+        <table class="table table-sm ciq-table mb-0">
+          <tr>
+            <td class="text-muted" style="width:160px;">Stripe Customer</td>
+            <td><code style="font-size:0.8rem;">{{ org.stripe_customer_id }}</code></td>
+          </tr>
+          {% if org.stripe_subscription_id %}
+          <tr>
+            <td class="text-muted">Subscription</td>
+            <td><code style="font-size:0.8rem;">{{ org.stripe_subscription_id }}</code></td>
+          </tr>
+          {% endif %}
+          <tr>
+            <td class="text-muted">Status</td>
+            <td>
+              {% if org.plan_status == 'active' %}
+                <span class="badge bg-success">Active</span>
+              {% elif org.plan_status == 'past_due' %}
+                <span class="badge bg-warning text-dark">Past Due</span>
+              {% elif org.plan_status == 'cancelled' %}
+                <span class="badge bg-danger">Cancelled</span>
+              {% else %}
+                <span class="badge bg-secondary">{{ org.plan_status }}</span>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endblock %}

@@ -64,6 +64,17 @@
             <span class="badge bg-success ms-1 ciq-pulse" id="patch-badge" style="display:none"></span>
           </a>
         </li>
+        {% if current_user.role == 'admin' %}
+        <li class="nav-item">
+          <a class="nav-link {% if request.endpoint and 'billing' in request.endpoint %}active{% endif %}"
+             href="{{ url_for('billing.dashboard') }}">
+            <i class="bi bi-credit-card me-1"></i>Billing
+            {% if current_user.org and current_user.org.plan_status == 'past_due' %}
+              <span class="badge bg-warning text-dark ms-1">!</span>
+            {% endif %}
+          </a>
+        </li>
+        {% endif %}
       </ul>
       <div class="d-flex align-items-center gap-2">
         <span class="text-muted small">

@@ -37,6 +37,7 @@ def create_app(env=None):
 
     # Register blueprints
     from .routes.landing import landing_bp
+    from .routes.billing import billing_bp
     from .routes.auth import auth_bp
     from .routes.cases import cases_bp
     from .routes.playbooks import playbooks_bp
@@ -48,6 +49,7 @@ def create_app(env=None):
     from .routes.metrics import metrics_bp
 
     app.register_blueprint(landing_bp)
+    app.register_blueprint(billing_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(cases_bp)
     app.register_blueprint(playbooks_bp)
@@ -65,6 +67,7 @@ def create_app(env=None):
 
     with app.app_context():
         db.create_all()
+        _migrate_billing_columns()
         _seed_defaults()
         if os.environ.get("DEMO_MODE", "").lower() == "true":
             _seed_demo_if_empty()
@@ -100,6 +103,24 @@ def _seed_demo_if_empty():
             print("[DEMO] Auto-seeded demo data on first boot.")
         except Exception as e:
             print(f"[DEMO] Auto-seed failed: {e}")
+
+
+def _migrate_billing_columns():
+    """Safely add billing columns to existing orgs table — idempotent."""
+    from sqlalchemy import text
+    cols = {
+        "plan":                    "VARCHAR(32) DEFAULT 'free'",
+        "plan_status":             "VARCHAR(32) DEFAULT 'active'",
+        "stripe_customer_id":      "VARCHAR(128)",
+        "stripe_subscription_id":  "VARCHAR(128)",
+        "plan_expires_at":         "DATETIME",
+    }
+    with db.engine.connect() as conn:
+        existing = [row[1] for row in conn.execute(text("PRAGMA table_info(orgs)"))]
+        for col, typedef in cols.items():
+            if col not in existing:
+                conn.execute(text(f"ALTER TABLE orgs ADD COLUMN {col} {typedef}"))
+        conn.commit()
 
 
 def _seed_defaults():

@@ -235,23 +235,37 @@ def start_scheduler(app):
                     import sys
                     print(f"[THREAT INTEL] Failed for org {org.id}: {e}", file=sys.stderr)
 
-    # ── Weekly (Sunday 03:00 UTC): generate patch release from approved proposals ──
-    def _weekly_patch_job():
+    # ── Daily 07:00 UTC: auto-approve low-risk proposals, then generate patch ──
+    def _daily_patch_job():
         with app.app_context():
             from ..models.org import Org
+            from ..models.threat import ThreatProposal
             from .patch_manager import PatchManager
             for org in Org.query.all():
                 try:
+                    # Auto-approve all pending low-risk proposals so they land in today's patch
+                    pending = ThreatProposal.query.filter_by(
+                        org_id=org.id, status="proposed"
+                    ).all()
+                    auto_approved = 0
+                    for p in pending:
+                        # Low-risk types always auto-approve; others queue for analyst
+                        if p.proposal_type in ("detection", "evidence_req"):
+                            p.status = "approved"
+                            auto_approved += 1
+                    db.session.commit()
+                    if auto_approved:
+                        print(f"[PATCH] Auto-approved {auto_approved} low-risk proposals for org {org.id}")
+
                     mgr = PatchManager(org.id)
-                    patch = mgr.generate_weekly_patch()
+                    patch = mgr.generate_daily_patch()
                     status = "auto-applied" if patch.auto_applied else "ready for review"
-                    print(f"[PATCH] Weekly patch {patch.version} generated for org {org.id} — {status}")
+                    print(f"[PATCH] Daily update {patch.version} for org {org.id} — {status}")
                 except Exception as e:
                     import sys
-                    print(f"[PATCH] Failed for org {org.id}: {e}", file=sys.stderr)
+                    print(f"[PATCH] Daily patch failed for org {org.id}: {e}", file=sys.stderr)
 
     _scheduler.add_job(_daily_intel_job, "cron", hour=hour, minute=0, id="daily_threat_intel")
-    _scheduler.add_job(_weekly_patch_job, "cron", day_of_week="sun", hour=3, minute=0,
-                       id="weekly_security_patch")
+    _scheduler.add_job(_daily_patch_job, "cron", hour=hour + 1, minute=0, id="daily_security_patch")
     _scheduler.start()
-    print(f"[THREAT INTEL] Scheduler started — daily @ {hour:02d}:00 UTC, weekly patch @ Sun 03:00 UTC")
+    print(f"[THREAT INTEL] Scheduler started — threat intel @ {hour:02d}:00 UTC, daily patch @ {hour+1:02d}:00 UTC")

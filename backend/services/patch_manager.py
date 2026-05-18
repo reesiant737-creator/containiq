@@ -39,6 +39,56 @@ class PatchManager:
 
     # ── Generate ─────────────────────────────────────────────────────────
 
+    def generate_daily_patch(self) -> PatchRelease:
+        """Bundle today's approved proposals into a daily patch release."""
+        today = date.today()
+        day_of_year = today.timetuple().tm_yday
+        version = f"{today.year}.{today.month:02d}.{today.day:02d}.1"
+
+        # Avoid duplicate patches for the same day
+        existing = PatchRelease.query.filter_by(
+            org_id=self.org_id, week_number=day_of_year
+        ).filter(
+            PatchRelease.status.in_(["draft", "ready", "applied"])
+        ).first()
+        if existing:
+            return existing
+
+        # Gather all approved proposals that haven't been patched yet
+        proposals = ThreatProposal.query.filter_by(
+            org_id=self.org_id, status="approved"
+        ).all()
+
+        if not proposals:
+            patch = self._create_patch(version, day_of_year, [], [])
+            patch.title = f"Daily Security Update {today.strftime('%b %d, %Y')} — No new content"
+            patch.summary = "No approved proposals today. All threat feeds reviewed."
+            patch.status = "applied"
+            patch.auto_applied = True
+            patch.applied_at = datetime.now(timezone.utc)
+            db.session.add(patch)
+            db.session.commit()
+            return patch
+
+        changes, rollback_manifest = self._build_change_set(proposals)
+        patch = self._create_patch(version, day_of_year, changes, rollback_manifest)
+        patch.title = f"Daily Security Update — {today.strftime('%b %d, %Y')}"
+
+        all_low_risk = all(c["risk"] == "low" for c in changes)
+        if all_low_risk:
+            patch.status = "ready"
+            patch.auto_applied = True
+            self._apply_patch(patch, changes, user_id=None)
+            for p in proposals:
+                p.status = "deployed"
+        else:
+            patch.status = "ready"
+            patch.auto_applied = False
+
+        db.session.add(patch)
+        db.session.commit()
+        return patch
+
     def generate_weekly_patch(self) -> PatchRelease:
         """Bundle this week's approved proposals into a patch release."""
         today = date.today()

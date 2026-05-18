@@ -29,6 +29,13 @@ class Config:
     MAX_BLAST_RADIUS_DEFAULT = 10  # max hosts a playbook can touch without extra approval
     DRY_RUN_DEFAULT = True         # always dry-run first unless overridden
 
+    # Stripe billing
+    STRIPE_SECRET_KEY = os.environ.get("STRIPE_SECRET_KEY", "")
+    STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
+    STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
+    STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID", "")  # price_xxx from Stripe dashboard
+    STRIPE_PRO_PRICE_DISPLAY = os.environ.get("STRIPE_PRO_PRICE_DISPLAY", "$99/month")
+
 
 class DevelopmentConfig(Config):
     DEBUG = True
