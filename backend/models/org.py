@@ -17,6 +17,9 @@ class Org(db.Model):
     stripe_subscription_id = db.Column(db.String(128))
     plan_expires_at = db.Column(db.DateTime)
 
+    # Notification config — JSON: {slack_url, teams_url, smtp_host, smtp_port, smtp_user, smtp_pass, notify_email}
+    notification_config = db.Column(db.Text, default="{}")
+
     users = db.relationship("User", back_populates="org", lazy="dynamic")
     cases = db.relationship("Case", back_populates="org", lazy="dynamic")
     playbooks = db.relationship("Playbook", back_populates="org", lazy="dynamic")

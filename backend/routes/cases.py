@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app
+from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, session
 from flask_login import login_required, current_user
 from datetime import datetime, timezone
 from ..models.case import Case, Entity, TimelineEvent, Evidence, SEVERITY, STATUS
+from ..models.detection import DetectionRule
 from ..services.audit_service import audit
 from ..services.ioc_enrichment import enrich_entities_async, ENRICHABLE_TYPES
 from ..app import db
@@ -23,7 +24,81 @@ def dashboard():
         "critical": Case.query.filter_by(org_id=current_user.org_id, severity="critical").filter(
             Case.status != "closed").count(),
     }
-    return render_template("dashboard.html", cases=open_cases, stats=stats)
+
+    # Onboarding — show until user dismisses or all steps complete
+    show_onboarding = not session.get(f"onboarding_dismissed_{current_user.org_id}", False)
+
+    total_cases = Case.query.filter_by(org_id=current_user.org_id).count()
+    has_detections = DetectionRule.query.filter_by(org_id=current_user.org_id).first() is not None
+    recent_case = Case.query.filter_by(org_id=current_user.org_id).order_by(Case.created_at.desc()).first()
+
+    onboarding_steps = [
+        {"title": "Create your account", "description": "You're in!", "url": "#", "done": True},
+        {"title": "Create your first case", "description": "Track your first incident", "url": url_for("cases.create_case"), "done": total_cases > 0},
+        {"title": "Connect an alert source", "description": "Ingest from Splunk, Sentinel, CrowdStrike", "url": url_for("settings.api_keys"), "done": False},
+        {"title": "Configure notifications", "description": "Get paged on critical alerts", "url": url_for("settings.index"), "done": False},
+        {"title": "Import detection rules", "description": "Load Sigma rules for instant coverage", "url": url_for("detections.import_rules_form"), "done": has_detections},
+        {"title": "Run AI analysis", "description": "Let Claude investigate a case", "url": url_for("cases.case_detail", case_id=recent_case.id) if recent_case else url_for("cases.create_case"), "done": False},
+    ]
+    all_done = all(s["done"] for s in onboarding_steps)
+    if all_done:
+        show_onboarding = False
+
+    return render_template("dashboard.html", cases=open_cases, stats=stats,
+                           show_onboarding=show_onboarding,
+                           onboarding_steps=onboarding_steps)
+
+
+@cases_bp.route("/onboarding/dismiss", methods=["POST"])
+@login_required
+def dismiss_onboarding():
+    session[f"onboarding_dismissed_{current_user.org_id}"] = True
+    return redirect(url_for("cases.dashboard"))
+
+
+@cases_bp.route("/cases/load-sample", methods=["POST"])
+@login_required
+def load_sample_case():
+    """Create a realistic sample incident for onboarding."""
+    sample = Case(
+        org_id=current_user.org_id,
+        title="[SAMPLE] Credential Stuffing Attack — Admin Portal",
+        description="Multiple failed login attempts detected against the admin portal from 192.168.45.22. "
+                    "23 failed attempts in 4 minutes followed by a successful login at 14:32 UTC. "
+                    "Unusual session: login from new country (RU), immediate access to user export function.",
+        severity="high",
+        status="investigating",
+        source="sentinel",
+        source_ref=f"sample-{int(datetime.now(timezone.utc).timestamp())}",
+        created_by=current_user.id,
+    )
+    db.session.add(sample)
+    db.session.flush()
+
+    entities_data = [
+        ("ip", "192.168.45.22"), ("user", "admin@company.com"),
+        ("domain", "company-portal.internal"), ("ip", "10.0.0.1"),
+    ]
+    for etype, val in entities_data:
+        db.session.add(Entity(case_id=sample.id, entity_type=etype, value=val))
+
+    events = [
+        ("alert_fired", "Sentinel alert fired: Brute force threshold exceeded (23 attempts in 4 min)"),
+        ("login", "Successful login from 192.168.45.22 (RU) at 14:32:07 UTC after 23 failures"),
+        ("file_access", "User export function accessed — 4,200 user records queried within 90 seconds of login"),
+        ("analyst_note", "[SAMPLE] This is example data. Open this case and click 'AI Analyze' to see ThreatCommand in action."),
+    ]
+    for i, (etype, desc) in enumerate(events):
+        db.session.add(TimelineEvent(
+            case_id=sample.id,
+            event_time=datetime.now(timezone.utc),
+            event_type=etype, description=desc,
+            source="sentinel", created_by=current_user.id,
+        ))
+
+    db.session.commit()
+    flash(f"Sample incident #{sample.id} loaded. Click 'AI Analyze' to see ThreatCommand in action!", "success")
+    return redirect(url_for("cases.case_detail", case_id=sample.id))
 
 
 @cases_bp.route("/cases")
@@ -116,6 +191,14 @@ def update_status(case_id):
     audit("case.status_change", user_id=current_user.id, org_id=current_user.org_id,
           resource_type="case", resource_id=str(case_id), case_id=case_id,
           payload={"from": old_status, "to": new_status})
+    if new_status in ("contained", "closed") or case.severity == "critical":
+        try:
+            from ..services.notifier import Notifier
+            from ..models.org import Org
+            Notifier(org=Org.query.get(current_user.org_id)).status_change(
+                case, old_status, new_status, current_user)
+        except Exception:
+            pass
     return jsonify({"status": case.status})
 
 

@@ -16,6 +16,30 @@
   </div>
 </div>
 
+<!-- Natural Language Search -->
+<div class="card ciq-card mb-4">
+  <div class="card-body py-3">
+    <div class="input-group">
+      <span class="input-group-text" style="background:var(--ciq-surface-2);border-color:var(--ciq-border);">
+        <i class="bi bi-cpu text-primary"></i>
+      </span>
+      <input type="text" id="nlSearch" class="form-control"
+             placeholder='Ask anything — "critical cases this week" · "open cases with IP 1.2.3.4" · "phishing last 30 days"'
+             style="background:var(--ciq-surface-2);border-color:var(--ciq-border);color:var(--ciq-text);">
+      <button class="btn btn-primary" id="btnNLSearch">
+        <i class="bi bi-search me-1"></i>Search
+      </button>
+    </div>
+    <div id="nlResults" class="mt-3 d-none">
+      <div id="nlExplanation" class="text-muted small mb-2"></div>
+      <div id="nlResultsTable"></div>
+    </div>
+    <div id="nlLoading" class="mt-2 d-none text-muted small">
+      <span class="spinner-border spinner-border-sm me-2"></span>Searching with AI...
+    </div>
+  </div>
+</div>
+
 <!-- Stat cards -->
 <div class="row g-3 mb-4">
   <div class="col-6 col-md-3">
@@ -51,6 +75,42 @@
     </div>
   </div>
 </div>
+
+{% if show_onboarding %}
+<div class="card ciq-card mb-4 border-primary">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-semibold text-primary"><i class="bi bi-rocket-takeoff me-2"></i>Get Started with ThreatCommand</span>
+    <form method="POST" action="/onboarding/dismiss">
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
+    </form>
+  </div>
+  <div class="card-body">
+    <p class="text-muted small mb-3">Complete these steps to get the most out of ThreatCommand.</p>
+    <div class="row g-3">
+      {% for step in onboarding_steps %}
+      <div class="col-md-6 col-lg-4">
+        <a href="{{ step.url }}" class="text-decoration-none">
+          <div class="d-flex align-items-center gap-3 p-3 rounded"
+               style="background:var(--ciq-surface-2);border:1px solid {{ 'var(--ciq-primary)' if step.done else 'var(--ciq-border)' }};">
+            <i class="bi {{ 'bi-check-circle-fill text-success' if step.done else 'bi-circle text-muted' }}" style="font-size:1.4rem;flex-shrink:0;"></i>
+            <div>
+              <div class="fw-semibold small {{ '' if step.done else 'text-muted' }}">{{ step.title }}</div>
+              <div class="text-muted" style="font-size:0.75rem;">{{ step.description }}</div>
+            </div>
+          </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+    <div class="mt-3">
+      <div class="progress" style="height:6px;">
+        <div class="progress-bar bg-primary" style="width:{{ (onboarding_steps|selectattr('done')|list|length / onboarding_steps|length * 100)|int }}%"></div>
+      </div>
+      <div class="text-muted small mt-1">{{ onboarding_steps|selectattr('done')|list|length }}/{{ onboarding_steps|length }} steps complete</div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <!-- Active cases table -->
 <div class="card ciq-card mb-4">
@@ -88,9 +148,19 @@
       </tbody>
     </table>
     {% else %}
-    <div class="text-center py-5 text-muted">
-      <i class="bi bi-check-circle display-4 text-success"></i>
-      <p class="mt-2">No active cases — all clear.</p>
+    <div class="text-center py-5">
+      <i class="bi bi-shield-check" style="font-size:3rem;color:var(--ciq-muted);"></i>
+      <h5 class="mt-3 text-muted">No active incidents</h5>
+      <p class="text-muted small">Your SOC is clean. Create a case when an incident occurs.</p>
+      <a href="{{ url_for('cases.create_case') }}" class="btn btn-primary mt-2">
+        <i class="bi bi-plus-circle me-1"></i>Create First Case
+      </a>
+      <span class="text-muted mx-2">or</span>
+      <form method="POST" action="/cases/load-sample" style="display:inline;">
+        <button type="submit" class="btn btn-outline-secondary mt-2">
+          <i class="bi bi-database-add me-1"></i>Load Sample Incident
+        </button>
+      </form>
     </div>
     {% endif %}
   </div>
@@ -153,5 +223,53 @@ document.getElementById('runThreatFeed').addEventListener('click', function() {
     })
     .catch(() => { this.innerHTML = 'Error'; this.disabled = false; });
 });
+
+// Natural Language Search
+const nlBtn = document.getElementById('btnNLSearch');
+const nlInput = document.getElementById('nlSearch');
+const nlResults = document.getElementById('nlResults');
+const nlLoading = document.getElementById('nlLoading');
+
+function runNLSearch() {
+  const q = nlInput.value.trim();
+  if (!q) return;
+  nlResults.classList.add('d-none');
+  nlLoading.classList.remove('d-none');
+  fetch('/ai/natural-search', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({query: q})
+  })
+  .then(r => r.json())
+  .then(d => {
+    nlLoading.classList.add('d-none');
+    nlResults.classList.remove('d-none');
+    document.getElementById('nlExplanation').innerHTML =
+      `<i class="bi bi-cpu me-1 text-primary"></i><strong>AI interpreted:</strong> ${d.explanation} — <strong>${d.total}</strong> case${d.total !== 1 ? 's' : ''} found`;
+    if (!d.results || d.results.length === 0) {
+      document.getElementById('nlResultsTable').innerHTML =
+        '<div class="text-muted small py-2">No cases match your search.</div>';
+      return;
+    }
+    const SEV = {critical:'danger',high:'warning',medium:'secondary',low:'success'};
+    document.getElementById('nlResultsTable').innerHTML = `
+      <table class="table table-sm ciq-table mb-0">
+        <thead><tr><th>#</th><th>Title</th><th>Severity</th><th>Status</th><th>Created</th></tr></thead>
+        <tbody>${d.results.map(r => `
+          <tr>
+            <td><a href="${r.url}" class="text-decoration-none">#${r.id}</a></td>
+            <td><a href="${r.url}">${r.title}</a></td>
+            <td><span class="badge bg-${SEV[r.severity]||'secondary'}">${r.severity}</span></td>
+            <td>${r.status}</td>
+            <td class="text-muted small">${r.created_at ? new Date(r.created_at).toLocaleDateString() : ''}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  })
+  .catch(() => { nlLoading.classList.add('d-none'); });
+}
+
+nlBtn.addEventListener('click', runNLSearch);
+nlInput.addEventListener('keydown', e => { if (e.key === 'Enter') runNLSearch(); });
 </script>
 {% endblock %}

@@ -219,3 +219,28 @@ def _set_notif_config(org, config: dict):
         org.notification_config = json.dumps(config)
     except Exception:
         pass  # column doesn't exist yet — migrations will add it later
+
+
+@settings_bp.route("/notifications/test", methods=["POST"])
+@login_required
+def test_notification():
+    """Send a test notification to verify webhook config."""
+    if current_user.role != "admin":
+        return redirect(url_for("settings.index"))
+    org = Org.query.filter_by(id=current_user.org_id).first_or_404()
+    try:
+        from ..services.notifier import Notifier
+        n = Notifier(org=org)
+        n._send_slack(
+            "[TEST] ThreatCommand Notification Test",
+            "This is a test notification from ThreatCommand. Your webhook is configured correctly!",
+            color="#198754"
+        )
+        n._send_teams(
+            "[TEST] ThreatCommand Notification Test",
+            "This is a test notification. Your Teams webhook is configured correctly!"
+        )
+        flash("Test notification sent! Check your Slack/Teams channel.", "success")
+    except Exception as e:
+        flash(f"Notification test failed: {e}", "danger")
+    return redirect(url_for("settings.index"))

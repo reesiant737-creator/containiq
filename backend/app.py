@@ -118,6 +118,7 @@ def _migrate_billing_columns():
         "stripe_customer_id":      "VARCHAR(128)",
         "stripe_subscription_id":  "VARCHAR(128)",
         "plan_expires_at":         "DATETIME",
+        "notification_config":     "TEXT DEFAULT '{}'",
     }
     with db.engine.connect() as conn:
         existing = [row[1] for row in conn.execute(text("PRAGMA table_info(orgs)"))]
